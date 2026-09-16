@@ -1,0 +1,23 @@
+# 依赖与构建产物（Cloudflare Workers 部署只需上传 dist/）
+node_modules/
+dist/
+.astro/
+.cache/
+.wrangler/
+.dev.vars
+.env
+.env.*
+!.env.example
+
+# 其他包管理器的锁文件（本项目未提交锁文件）
+package-lock.json
+yarn.lock
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+.idea/
+.vscode/*
+!.vscode/extensions.json

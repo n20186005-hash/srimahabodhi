@@ -1,0 +1,21 @@
+{
+  "name": "Jaya Sri Maha Bodhi - Anuradhapura Visitor Guide",
+  "short_name": "Sri Maha Bodhi",
+  "description": "Visitor guide to Jaya Sri Maha Bodhi in Anuradhapura, North Central Province, Sri Lanka: location map, opening hours, dress code, ratings and nearby landmarks.",
+  "lang": "si",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fffaf0",
+  "theme_color": "#293d2d",
+  "categories": ["travel", "education", "navigation"],
+  "icons": [
+    { "src": "/icons/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/favicon-32.png", "sizes": "32x32", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/favicon-16.png", "sizes": "16x16", "type": "image/png", "purpose": "any" }
+  ]
+}
