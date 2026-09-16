@@ -1,0 +1,186 @@
+---
+import '../styles/global.css';
+
+const siteUrl = Astro.site?.toString().replace(/\/$/, '');
+const canonical = siteUrl ? `${siteUrl}/` : undefined;
+const ogImage = siteUrl ? `${siteUrl}/images/jaya-sri-maha-bodhi-main.jpg` : '/images/jaya-sri-maha-bodhi-main.jpg';
+
+const attraction = {
+  '@context': 'https://schema.org',
+  '@type': 'TouristAttraction',
+  name: 'ජය ශ්‍රී මහා බෝධිය',
+  alternateName: 'Jaya Sri Maha Bodhi',
+  description: 'අනුරාධපුර මහමෙව්නා උයනේ පිහිටි, ශ්‍රී ලාංකික බෞද්ධයන්ට අතිශය පූජනීය බෝධි වෘක්ෂය.',
+  url: canonical,
+  image: ogImage,
+  telephone: '+94 25 222 2367',
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: '89VW+VV5',
+    addressLocality: 'Anuradhapura',
+    addressRegion: 'North Central Province',
+    addressCountry: 'LK'
+  },
+  geo: { '@type': 'GeoCoordinates', latitude: 8.3446448, longitude: 80.3972292 },
+  openingHoursSpecification: [
+    { '@type': 'OpeningHoursSpecification', dayOfWeek: ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], opens: '06:15', closes: '21:00' }
+  ],
+  isAccessibleForFree: true,
+  aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.3', reviewCount: '43', bestRating: '5' }
+};
+
+const faq = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    { '@type': 'Question', name: 'ජය ශ්‍රී මහා බෝධිය නැරඹීමට ගාස්තුවක් තිබේද?', acceptedAnswer: { '@type': 'Answer', text: 'පූජනීය බෝධියට ප්‍රවේශය සාමාන්‍යයෙන් නොමිලේ ලෙස දක්වා ඇත. නමුත් අනුරාධපුර පුරාවිද්‍යා කලාපයේ වෙනත් ස්ථාන සඳහා වෙනම ප්‍රවේශ ගාස්තු තිබිය හැක.' } },
+    { '@type': 'Question', name: 'නැරඹීමට හොඳම වේලාව කවදාද?', acceptedAnswer: { '@type': 'Answer', text: 'අලුයම හෝ සවස උණුසුම අඩු වේලාව සන්සුන් අත්දැකීමක් ලබා දෙයි. පෝය දිනවල විශාල වන්දනාකරුවන් පිරිසක් පැමිණිය හැක.' } },
+    { '@type': 'Question', name: 'ඇඳුම් සහ හැසිරීම් පිළිබඳ නීති මොනවාද?', acceptedAnswer: { '@type': 'Answer', text: 'උරහිස් හා දණ වැසෙන ගෞරවාන්විත ඇඳුම් ඇඳීම සුදුසුය. පූජනීය ප්‍රදේශයට ඇතුල්වීමට පෙර සපත්තු සහ හිස්වැසුම් ඉවත් කර නිහඬව හැසිරෙන්න.' } },
+    { '@type': 'Question', name: 'කොපමණ කාලයක් වෙන් කළ යුතුද?', acceptedAnswer: { '@type': 'Answer', text: 'පූජනීය පරිශ්‍රය සඳහා සාමාන්‍යයෙන් මිනිත්තු 30 සිට පැය 1.5 දක්වා වෙන් කිරීම ප්‍රමාණවත්ය. අවට රුවන්වැලි මහා සෑය හා ලෝවාමහාපාය එක් කරන්නේ නම් වැඩි කාලයක් වෙන් කරන්න.' } }
+  ]
+};
+---
+<!doctype html>
+<html lang="si">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ජය ශ්‍රී මහා බෝධිය | අනුරාධපුර පූජනීය නගරය</title>
+  <meta name="description" content="ජය ශ්‍රී මහා බෝධියට පැමිණීම සඳහා ප්‍රායෝගික මාර්ගෝපදේශය: ඉතිහාසය, විවෘත වේලාව, ගාස්තු, ගමනාගමනය, රථගාල්, ආහාර හා අවට පූජනීය ස්ථාන." />
+  {canonical && <link rel="canonical" href={canonical} />}
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="ජය ශ්‍රී මහා බෝධිය" />
+  <meta property="og:description" content="අනුරාධපුරයේ ජීවමාන පූජනීය උරුමයක් සඳහා සංචාරක මාර්ගෝපදේශය." />
+  <meta property="og:image" content={ogImage} />
+  {canonical && <meta property="og:url" content={canonical} />}
+  <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+  <script type="application/ld+json" set:html={JSON.stringify(attraction)}></script>
+  <script type="application/ld+json" set:html={JSON.stringify(faq)}></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HXM22WWPKP"></script>
+  <script is:inline>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HXM22WWPKP');
+  </script>
+</head>
+<body>
+  <header class="absolute inset-x-0 top-0 z-20 border-b border-white/15 bg-[#211a13]/25 backdrop-blur-md">
+    <div class="container flex items-center justify-between py-4">
+      <a href="#top" aria-label="මුල් පිටුව" class="block rounded-xl bg-[#fffaf0]/95 px-3 py-2 shadow-lg"><img src="/logo.svg" alt="ජය ශ්‍රී මහා බෝධිය" class="h-12 w-auto" /></a>
+      <nav class="hidden gap-6 text-sm font-semibold text-white md:flex"><a href="#visit">පැමිණීම</a><a href="#nearby">අවට</a><a href="#faq">ප්‍රශ්න</a></nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="relative min-h-[92vh] overflow-hidden bg-[#253426] text-white">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Sri_Maha_Bodhi%2C_Anuradhapura.jpg/1280px-Sri_Maha_Bodhi%2C_Anuradhapura.jpg" alt="අනුරාධපුර ජය ශ්‍රී මහා බෝධි පරිශ්‍රය" class="absolute inset-0 h-full w-full object-cover" />
+      <div class="absolute inset-0 bg-gradient-to-r from-[#18261c]/95 via-[#21311f]/75 to-[#7f5227]/20"></div>
+      <div class="container relative z-10 flex min-h-[92vh] items-end pb-20 pt-36">
+        <div class="max-w-3xl">
+          <p class="mb-4 text-sm font-bold tracking-[.22em] text-[#f0d695]">අනුරාධපුර · මහමෙව්නා උයන</p>
+          <h1 class="text-5xl font-black leading-[1.1] md:text-7xl">ජය ශ්‍රී<br/><span class="text-[#f0d695]">මහා බෝධිය</span></h1>
+          <p class="mt-6 max-w-2xl text-lg leading-8 text-[#f5efe5]">වසර දෙදහසකට වැඩි කාලයක් වන්දනා, රැකවරණය සහ ජීවමාන සම්ප්‍රදාය එක් තැනක රැඳී ඇති අනුරාධපුරයේ අතිපූජනීය බෝධි වෘක්ෂය.</p>
+          <div class="mt-8 flex flex-wrap gap-3">
+            <a href="#visit" class="rounded-full bg-[#d19c38] px-6 py-3 font-bold text-[#271b0f]">පැමිණීම සැලසුම් කරන්න</a>
+            <a href="https://maps.app.goo.gl/Xm4DV3tAoWF94of36" rel="noreferrer" class="rounded-full border border-white/40 bg-white/10 px-6 py-3 font-bold">Google සිතියම</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container grid gap-10 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
+        <div>
+          <p class="eyebrow">ජීවමාන උරුමය</p>
+          <h2 class="mt-3 text-4xl font-black leading-tight md:text-5xl">බෝධගයාවෙන් අනුරාධපුරයට පැමිණි පූජනීය සබඳතාව</h2>
+          <div class="prose mt-6 space-y-4 text-lg">
+            <p>ශ්‍රී ලංකා සංචාරක ප්‍රවර්ධන අධිකාරියේ තොරතුරු අනුව, ජය ශ්‍රී මහා බෝධිය බෝධගයාවේ පූජනීය බෝධි වෘක්ෂයේ අංකුරයකින් පැවතෙන අතර සංඝමිත්තා තෙරණිය විසින් ශ්‍රී ලංකාවට ගෙන එන ලදී. දේවානම්පියතිස්ස රජුගේ යුගයේ එය මහමෙව්නා උයනේ රෝපණය කරන ලද බව සම්ප්‍රදාය සඳහන් කරයි.</p>
+            <p>මෙය සරල “පැරණි ගසක්” ලෙස නොව දිනපතා වන්දනා කරන ජීවමාන පූජනීය ස්ථානයක් ලෙස බැලීම වැදගත්ය. නිහඬව, ගෞරවයෙන් සහ දේශීය ආචාර පිළිපදිමින් පැමිණීම අත්දැකීමේ මූලික කොටසකි.</p>
+          </div>
+        </div>
+        <div class="relative">
+          <div class="absolute -inset-4 -z-10 rotate-3 rounded-[2.5rem] border border-[#b88a2d]/30"></div>
+          <img src="https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/SL_Anuradhapura_asv2020-01_img04_Jaya_Sri_Maha_Bodhi.jpg/1280px-SL_Anuradhapura_asv2020-01_img04_Jaya_Sri_Maha_Bodhi.jpg" alt="ජය ශ්‍රී මහා බෝධි පරිශ්‍රයේ වන්දනාකරුවන්" class="h-[520px] w-full rounded-[2.25rem] object-cover shadow-2xl" />
+          <div class="absolute bottom-5 left-5 right-5 rounded-2xl bg-[#fffaf0]/92 p-4 text-sm text-[#49382a] backdrop-blur"><strong>ගෞරවයෙන් පැමිණෙන්න:</strong> සපත්තු හා හිස්වැසුම් ඉවත් කර, උරහිස් සහ දණ වැසෙන ඇඳුම් තෝරන්න.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="visit" class="section grid-paper border-y border-[#755d45]/10 bg-[#f4ead7]">
+      <div class="container">
+        <div class="max-w-2xl"><p class="eyebrow">පැමිණීමට පෙර</p><h2 class="mt-3 text-4xl font-black">ප්‍රායෝගික තොරතුරු</h2></div>
+        <div class="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <article class="card rounded-3xl p-6"><span class="text-3xl">🕕</span><h3 class="mt-5 text-xl font-extrabold">විවෘත වේලාව</h3><p class="mt-2 leading-7 text-[#665444]">සාමාන්‍යයෙන් පෙ.ව. 6:15 සිට රාත්‍රී 9:00 දක්වා ලෙස ලැයිස්තුගත වේ. විශේෂ පූජා/පෝය දිනවල වෙනස්කම් විය හැක.</p></article>
+          <article class="card rounded-3xl p-6"><span class="text-3xl">🎟️</span><h3 class="mt-5 text-xl font-extrabold">ප්‍රවේශ ගාස්තුව</h3><p class="mt-2 leading-7 text-[#665444]">බෝධි පරිශ්‍රයට ප්‍රවේශය නොමිලේ ලෙස වාර්තා වේ. අවට පුරාවිද්‍යා ස්ථාන සඳහා වෙනම ටිකට් අවශ්‍ය විය හැක.</p></article>
+          <article class="card rounded-3xl p-6"><span class="text-3xl">⏳</span><h3 class="mt-5 text-xl font-extrabold">රැඳී සිටින කාලය</h3><p class="mt-2 leading-7 text-[#665444]">මිනිත්තු 30–90. වන්දනා, නිහඬව වාඩිවීම හෝ අවට පූජනීය ස්ථාන එකතු කරන්නේ නම් වැඩි කාලයක් වෙන් කරන්න.</p></article>
+          <article class="card rounded-3xl p-6"><span class="text-3xl">🌤️</span><h3 class="mt-5 text-xl font-extrabold">හොඳම වේලාව</h3><p class="mt-2 leading-7 text-[#665444]">අලුයම හෝ සවස. දවල් පාවහන් නොමැතිව ගමන් කරන පෘෂ්ඨ උණුසුම් විය හැකි අතර පෝය දිනවල ජනතාව වැඩි වේ.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container grid gap-10 lg:grid-cols-2">
+        <div class="rounded-[2rem] bg-[#2f432f] p-8 text-white md:p-10">
+          <p class="text-sm font-bold tracking-[.18em] text-[#e8c877]">විස්තරාත්මක ගමනාගමනය</p>
+          <h2 class="mt-3 text-3xl font-black">අනුරාධපුරයට හා පූජනීය කලාපයට ළඟා වීම</h2>
+          <div class="mt-6 space-y-5 leading-7 text-[#eef0e8]"><p><strong>දුම්රියෙන්:</strong> කොළඹ සිට අනුරාධපුර දුම්රිය ස්ථානයට පැමිණ, එතැන් සිට ටුක්-ටුක්/ටැක්සි හෝ දේශීය ප්‍රවාහනයෙන් පූජනීය නගර කලාපයට යා හැක.</p><p><strong>බස් රථයෙන්:</strong> දිවයිනේ ප්‍රධාන නගරවලින් අනුරාධපුර ප්‍රධාන බස් නැවතුමට සේවා ඇත. අවසාන කොටස සඳහා ටුක්-ටුක් එකක් ප්‍රායෝගිකය.</p><p><strong>පෞද්ගලික වාහනයෙන්:</strong> Sacred City / Sri Maha Bodhi යන සලකුණු අනුගමනය කරන්න. ආගමික කලාපයේ ගමනාගමන සීමා හා වන්දනාකරුවන්ට ප්‍රමුඛතාව සලකා බලන්න.</p></div>
+        </div>
+        <div class="rounded-[2rem] border border-[#a78a67]/20 bg-white/70 p-8 md:p-10">
+          <p class="eyebrow">රථගාල්</p><h2 class="mt-3 text-3xl font-black">සපත්තු ගබඩා සහ රථගාල් සැලසුම</h2><p class="mt-6 leading-8 text-[#5e4c3c]">පූජනීය නගරයේ ප්‍රවේශ මාර්ග අසල රථගාල්/නවතා තැබීමේ ස්ථාන භාවිතා කළ හැකි නමුත් පෝය දිනවල ඉඩ සීමිත විය හැක. නිශ්චිත ගාස්තුවක් හෝ නොමිලේ බවක් පෙරනිමි ලෙස නොගන්න. වාහනයෙන් වටිනා ද්‍රව්‍ය නොතබන්න; පූජනීය පරිශ්‍රයට පෙර සපත්තු තැබීම සඳහා දේශීය පහසුකම් භාවිතා කරන්න.</p>
+          <div class="mt-7 rounded-2xl bg-[#f7eedc] p-5 text-sm leading-6 text-[#614d39]">උණුසුම් දිනයක සපත්තු ඉවත් කළ පසු භූමිය උණුසුම් විය හැක. පිරිසිදු මोजා යුගලයක් ගෙන යාම ප්‍රයෝජනවත් විය හැක.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section bg-[#1f2d22] text-white">
+      <div class="container">
+        <div class="grid gap-8 lg:grid-cols-[.8fr_1.2fr] lg:items-end"><div><p class="text-sm font-bold tracking-[.18em] text-[#e7c879]">සිතියම</p><h2 class="mt-3 text-4xl font-black">89VW+VV5, අනුරාධපුර</h2><p class="mt-4 leading-7 text-[#d7dfd4]">ඛණ්ඩාංක: 8.344645, 80.397229. Google සිතියම් අතුරුමුහුණත සිංහල භාෂාවට සකසා ඇත.</p></div><a href="https://maps.app.goo.gl/Xm4DV3tAoWF94of36" class="justify-self-start rounded-full border border-white/25 px-5 py-3 font-bold lg:justify-self-end">සම්පූර්ණ සිතියම විවෘත කරන්න ↗</a></div>
+        <div class="mt-8 overflow-hidden rounded-[2rem] border border-white/15 bg-white/5"><iframe title="ජය ශ්‍රී මහා බෝධිය Google සිතියම" src="https://www.google.com/maps?q=8.3446448,80.3972292&hl=si&gl=lk&z=16&output=embed" width="100%" height="520" style="border:0" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
+      </div>
+    </section>
+
+    <section id="nearby" class="section">
+      <div class="container">
+        <p class="eyebrow">අවට පූජනීය ස්ථාන</p><h2 class="mt-3 max-w-3xl text-4xl font-black">පා ගමනෙන් හෝ කෙටි රථ ගමනකින් එකතු කළ හැකි ස්ථාන</h2>
+        <div class="mt-10 grid gap-5 md:grid-cols-3">
+          <article class="card rounded-3xl p-7"><div class="text-4xl">◯</div><h3 class="mt-5 text-2xl font-black">රුවන්වැලි මහා සෑය</h3><p class="mt-3 leading-7 text-[#655242]">අනුරාධපුරයේ අතිශය පූජනීය මහා ස්තූප අතර ප්‍රමුඛ ස්ථානයක්. ශ්‍රී මහා බෝධිය සමඟ එකම වන්දනා මාර්ගයකට ගැලපේ.</p></article>
+          <article class="card rounded-3xl p-7"><div class="text-4xl">▥</div><h3 class="mt-5 text-2xl font-black">ලෝවාමහාපාය</h3><p class="mt-3 leading-7 text-[#655242]">ශ්‍රී මහා බෝධිය හා රුවන්වැලි සෑය අතර පිහිටි පුරාණ ආරාමික ගොඩනැගිල්ලක ශිලා ස්තම්භ පේළි දැකිය හැකි ස්ථානය.</p></article>
+          <article class="card rounded-3xl p-7"><div class="text-4xl">◉</div><h3 class="mt-5 text-2xl font-black">ථූපාරාමය</h3><p class="mt-3 leading-7 text-[#655242]">ශ්‍රී ලංකාවේ මුල්කාලීන බෞද්ධ ස්තූප උරුමය සමඟ සම්බන්ධ, අනුරාධපුර පූජනීය නගරයේ වැදගත් ස්ථානයක්.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section border-y border-[#785e43]/10 bg-[#f3e7d1]">
+      <div class="container grid gap-10 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Jaya_Sri_Maha_Bodhiya.jpg/960px-Jaya_Sri_Maha_Bodhiya.jpg" alt="බෞද්ධ කොඩි සහ ජය ශ්‍රී මහා බෝධි පරිශ්‍රය" class="h-[540px] w-full rounded-[2rem] object-cover shadow-xl" />
+        <div><p class="eyebrow">අවට ආහාර</p><h2 class="mt-3 text-4xl font-black">වන්දනාවෙන් පසු සරල ශ්‍රී ලාංකික ආහාර</h2><div class="mt-7 space-y-4">
+          <div class="rounded-2xl bg-white/75 p-5"><h3 class="font-extrabold">හෙල සත්කාර බොජුන් හල</h3><p class="mt-2 text-sm leading-6 text-[#655242]">කුරුණෑගල පාරේ දේශීය බත්-කරි සහ සාම්ප්‍රදායික උදෑසන ආහාර සඳහා ජනප්‍රිය තේරීමක්.</p></div>
+          <div class="rounded-2xl bg-white/75 p-5"><h3 class="font-extrabold">Mr. කරපිංචා</h3><p class="mt-2 text-sm leading-6 text-[#655242]">නව නගරයේ ශ්‍රී ලාංකික ආහාර, උදෑසන ආහාර හා පළතුරු පාන සඳහා හොඳින් සලකා බැලිය හැකි ස්ථානයක්.</p></div>
+          <div class="rounded-2xl bg-white/75 p-5"><h3 class="font-extrabold">Little Paradise Restaurant</h3><p class="mt-2 text-sm leading-6 text-[#655242]">සන්සුන් උද්‍යාන වාතාවරණයක බත් හා කරි වර්ග භුක්ති විඳීමට සුදුසු පවුලේ ආපනශාලාවක්.</p></div>
+        </div><p class="mt-5 text-xs leading-5 text-[#725d49]">විවෘත වේලාවන් හා මෙනු වෙනස් විය හැකි බැවින් පැමිණීමට පෙර නවතම තොරතුරු පරීක්ෂා කරන්න.</p></div>
+      </div>
+    </section>
+
+    <section id="faq" class="section">
+      <div class="container max-w-4xl"><p class="eyebrow">නිතර අසන ප්‍රශ්න</p><h2 class="mt-3 text-4xl font-black">පැමිණීමට පෙර දැනගත යුතු දේ</h2><div class="mt-8 divide-y divide-[#8c7765]/20 rounded-[2rem] border border-[#8c7765]/20 bg-white/70 px-6 md:px-8">
+        <details class="group py-6" open><summary class="cursor-pointer list-none text-lg font-extrabold">ප්‍රවේශය නොමිලේද?</summary><p class="mt-3 leading-7 text-[#655242]">ජය ශ්‍රී මහා බෝධිය සඳහා නොමිලේ ප්‍රවේශය ලෙස නවතම සංචාරක ලැයිස්තුගත කිරීම් දක්වයි. එහෙත් අවට පුරාවිද්‍යා කලාපයේ වෙනත් ස්ථාන වෙනම ටිකට් පද්ධතියකට අයත් විය හැක.</p></details>
+        <details class="group py-6"><summary class="cursor-pointer list-none text-lg font-extrabold">ඡායාරූප ගත හැකිද?</summary><p class="mt-3 leading-7 text-[#655242]">සාමාන්‍යයෙන් ගෞරවාන්විත ඡායාරූප ගැනීම සිදු කළ හැකි නමුත් වන්දනාකරුවන්, භික්ෂූන් වහන්සේලා හෝ පූජා කටයුතු බාධා නොකරන්න. පූජනීය වෘක්ෂය පිටුපස තබාගෙන පෝස් කිරීම වැනි ක්‍රියා වලින් වළකින්න.</p></details>
+        <details class="group py-6"><summary class="cursor-pointer list-none text-lg font-extrabold">පෝය දිනවල යාම හොඳද?</summary><p class="mt-3 leading-7 text-[#655242]">පෝය දිනවල ආගමික වාතාවරණය විශේෂ වේ, නමුත් විශාල වන්දනාකරුවන් පිරිසක් බලාපොරොත්තු විය යුතුය. සන්සුන් අත්දැකීමක් සඳහා සාමාන්‍ය සතියේ අලුයම වඩා සුදුසු විය හැක.</p></details>
+        <details class="group py-6"><summary class="cursor-pointer list-none text-lg font-extrabold">ළමුන් සමඟ පැමිණිය හැකිද?</summary><p class="mt-3 leading-7 text-[#655242]">ඔව්. පූජනීය බව පැහැදිලි කර දී ශබ්දය අඩු කරමින්, පූජා ප්‍රදේශවල දුවීමෙන් හෝ අතපත ගෑමෙන් වළක්වා ගැනීම සුදුසුය.</p></details>
+      </div></div>
+    </section>
+
+    <section class="pb-16">
+      <div class="container rounded-[2rem] border border-[#9c815f]/20 bg-[#fffaf0] p-6 text-xs leading-6 text-[#6d5b4a]">
+        <strong>ඡායාරූප ණය:</strong> Wikimedia Commons හි Hirushini Dematagoda (CC BY-SA 4.0), A.Savin (Free Art License) සහ Sendaru Perera (CC BY-SA 4.0) විසින් ලබා දුන් සැබෑ ස්ථාන ඡායාරූප භාවිතා කර ඇත. මෙහි ඇති ඡායාරූප URL බාහිර මූලාශ්‍රවලින් පෙන්වනු ලබන්නේ බෙදාහැරීමේ පරිසරයේ ජාල සීමාව නිසාය.
+      </div>
+    </section>
+  </main>
+
+  <footer class="bg-[#191712] py-10 text-[#d9d1c3]"><div class="container flex flex-col gap-4 text-sm md:flex-row md:items-center md:justify-between"><img src="/logo.svg" alt="ජය ශ්‍රී මහා බෝධිය" class="h-11 w-auto rounded-lg bg-[#fffaf0] px-2"/><p class="max-w-xl text-right">මෙය නිල වෙබ් අඩවියක් නොවේ; සංචාරක සැලසුම් සඳහා සකස් කළ ස්වාධීන තොරතුරු මාර්ගෝපදේශයකි.</p></div></footer>
+</body>
+</html>
