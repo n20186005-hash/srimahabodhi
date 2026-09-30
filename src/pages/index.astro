@@ -37,10 +37,11 @@ const GOVT_TOURISM_URL = 'https://www.sltda.gov.lk/';
 const TELEPHONE = '+94 25 222 2367';
 const PLUS_CODE = '89VW+VV5, Anuradhapura, Sri Lanka';
 
-/* Google Maps 评分 / 评价同步信息（仅页面展示，不进 JSON-LD） */
+/* Google Maps 评分 / 评价同步信息（页面展示 + TouristAttraction JSON-LD 的 aggregateRating 同源） */
 const RATING_VALUE = '4.9';
 const RATING_BEST = '5';
-const REVIEW_COUNT = '14,899';
+const REVIEW_COUNT = '14,999';
+const REVIEW_COUNT_NUM = 14999;
 const REVIEW_SYNC_DATE = '2026 සැප්තැම්බර්';
 const REVIEW_SYNC_DATE_EN = 'September 2026';
 const STAR_WIDTH = `${(4.9 / 5) * 100}%`;
@@ -98,8 +99,8 @@ const weatherRows = weatherDays.map((day, index) => {
   };
 });
 
-const pageTitle = `${ATTRACTION_LOCAL_NAME} | ${ATTRACTION_FULL_NAME} (${CITY_NAME}) - Visitor Guide & Location`;
-const pageDescription = `${ATTRACTION_FULL_NAME} (${ATTRACTION_LOCAL_NAME}) — ${CITY_LOCAL_NAME}යේ පූජනීය බෝධි වෘක්ෂය සඳහා සංචාරක මාර්ගෝපදේශය: සිතියම, විවෘත වේලාව, ගාස්තු, ඇඳුම් නීති සහ අවට ස්ථාන. Discover the sacred fig tree in ${CITY_NAME}, ${STATE_PROVINCE}, ${COUNTRY_NAME}: location map, opening details, nearby ${NEARBY_LANDMARK_1} and ${NEARBY_LANDMARK_2}, and travel tips.`;
+const pageTitle = `${ATTRACTION_LOCAL_NAME} | ${ATTRACTION_FULL_NAME} (${CITY_NAME}) — Visitor Guide: Opening Hours, History & Location`;
+const pageDescription = `${ATTRACTION_FULL_NAME} (${ATTRACTION_LOCAL_NAME}) — ${CITY_LOCAL_NAME}යේ පූජනීය බෝධි වෘක්ෂය සඳහා සංචාරක මාර්ගෝපදේශය: විවෘත වේලාව, ගාස්තු, ඇඳුම් නීති, ඉතිහාසය සහ අවට ස්ථාන. Plan your visit to ${ATTRACTION_FULL_NAME} in ${CITY_NAME}, ${STATE_PROVINCE}, ${COUNTRY_NAME}: opening hours, history, dress code, how to reach, and nearby ${NEARBY_LANDMARK_1} & ${NEARBY_LANDMARK_2}.`;
 const ogTitle = `${ATTRACTION_FULL_NAME} - ${CITY_NAME} Travel Guide`;
 const ogDescription = `${ATTRACTION_LOCAL_NAME} සඳහා සංචාරක මාර්ගෝපදේශය · Official visitor guide to ${ATTRACTION_FULL_NAME} in ${CITY_NAME}, ${STATE_PROVINCE}, ${COUNTRY_NAME}.`;
 
@@ -120,6 +121,12 @@ const attraction = {
   telephone: TELEPHONE,
   isAccessibleForFree: true,
   publicAccess: true,
+  aggregateRating: {
+    '@type': 'AggregateRating',
+    ratingValue: RATING_VALUE,
+    reviewCount: REVIEW_COUNT_NUM,
+    bestRating: RATING_BEST
+  },
   address: {
     '@type': 'PostalAddress',
     streetAddress: PLUS_CODE,
@@ -230,6 +237,31 @@ const faq = {
     name: item.q,
     acceptedAnswer: { '@type': 'Answer', text: item.a }
   }))
+};
+
+/* 5. WebSite + Organization 结构化数据（E-E-A-T / 知识面板 / 站点链接） */
+const siteGraph = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': `${siteUrl}/#website`,
+      url: siteUrl,
+      name: `${ATTRACTION_FULL_NAME} Visitor Guide`,
+      alternateName: [ATTRACTION_SHORT_NAME, ATTRACTION_LOCAL_NAME],
+      inLanguage: 'si',
+      description: `Visitor guide to ${ATTRACTION_FULL_NAME} in ${CITY_NAME}, ${STATE_PROVINCE}, ${COUNTRY_NAME}: opening hours, history, dress code, how to reach, and nearby ${NEARBY_LANDMARK_1} & ${NEARBY_LANDMARK_2}.`,
+      publisher: { '@id': `${siteUrl}/#organization` }
+    },
+    {
+      '@type': 'Organization',
+      '@id': `${siteUrl}/#organization`,
+      name: `${ATTRACTION_FULL_NAME} Visitor Guide`,
+      url: siteUrl,
+      logo: `${siteUrl}/icons/apple-touch-icon.png`,
+      sameAs: [MAPS_SHARE_URL, GOVT_TOURISM_URL]
+    }
+  ]
 };
 
 /* ------------------------------------------------------------------ *
@@ -622,6 +654,7 @@ const sources = [
   <script type="application/ld+json" is:inline set:html={JSON.stringify(attraction)}></script>
   <script type="application/ld+json" is:inline set:html={JSON.stringify(breadcrumb)}></script>
   <script type="application/ld+json" is:inline set:html={JSON.stringify(faq)}></script>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(siteGraph)}></script>
 
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-HXM22WWPKP"></script>
   <script is:inline>
