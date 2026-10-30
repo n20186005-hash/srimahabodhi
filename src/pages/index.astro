@@ -1,1325 +1,147 @@
 ---
 import '../styles/global.css';
-import {
-  getWeatherSnapshot,
-  weatherCodeToText,
-  buildWeatherAdvice,
-  formatNumber,
-  windLabel,
-  uvLabel,
-  humidityLabel,
-  feelsLabel,
-  ADVICE_CLASS
-} from '../lib/weather';
-
-/* ------------------------------------------------------------------ *
- * 单景点 SEO 实体绑定配置变量（Single-attraction entity binding）
- * ------------------------------------------------------------------ */
-const DOMAIN_NAME = 'srimahabodhi.com';
-const ATTRACTION_FULL_NAME = 'Jaya Sri Maha Bodhi';
-const ATTRACTION_SHORT_NAME = 'Sri Maha Bodhi';
-const ATTRACTION_LOCAL_NAME = 'ජය ශ්‍රී මහා බෝධිය';
-const CITY_NAME = 'Anuradhapura';
-const CITY_LOCAL_NAME = 'අනුරාධපුර';
-const STATE_PROVINCE = 'North Central Province';
-const STATE_PROVINCE_LOCAL = 'උතුරු මැද පළාත';
-const COUNTRY_NAME = 'Sri Lanka';
-const COUNTRY_LOCAL_NAME = 'ශ්‍රී ලංකාව';
-const COUNTRY_CODE_2LETTER = 'LK';
-const POSTAL_CODE = '50000';
-const LATITUDE = 8.3446448;
-const LONGITUDE = 80.3972292;
-const MAPS_SHARE_URL = 'https://maps.app.goo.gl/Xm4DV3tAoWF94of36';
-const MAPS_EMBED_SRC = 'https://www.google.com/maps?q=8.3446448,80.3972292&hl=si&gl=lk&z=16&output=embed';
-const NEARBY_LANDMARK_1 = 'Ruwanwelisaya';
-const NEARBY_LANDMARK_2 = 'Lovamahapaya';
-const GOVT_TOURISM_URL = 'https://www.sltda.gov.lk/';
-const TELEPHONE = '+94 25 222 2367';
-const PLUS_CODE = '89VW+VV5, Anuradhapura, Sri Lanka';
-
-/* Google Maps 评分 / 评价同步信息（页面展示 + TouristAttraction JSON-LD 的 aggregateRating 同源） */
-const RATING_VALUE = '4.9';
-const RATING_BEST = '5';
-const REVIEW_COUNT = '14,999';
-const REVIEW_COUNT_NUM = 14999;
-const REVIEW_SYNC_DATE = '2026 සැප්තැම්බර්';
-const REVIEW_SYNC_DATE_EN = 'September 2026';
-const STAR_WIDTH = `${(4.9 / 5) * 100}%`;
-
-const siteUrl = (Astro.site?.toString() ?? `https://${DOMAIN_NAME}`).replace(/\/$/, '');
-const canonical = `${siteUrl}/`;
-const heroImage = `${siteUrl}/images/jaya-sri-maha-bodhi-hero.jpg`;
-const pilgrimsImage = `${siteUrl}/images/jaya-sri-maha-bodhi-pilgrims.jpg`;
-const flagsImage = `${siteUrl}/images/jaya-sri-maha-bodhiya-flags.jpg`;
-
-/* ------------------------------------------------------------------ *
- * 天气：服务器端获取并缓存（构建/渲染期取数，浏览器端定时刷新保持实时）
- * ------------------------------------------------------------------ */
-const weather = await getWeatherSnapshot(LATITUDE, LONGITUDE);
-const weatherNow = weather.now;
-const weatherDays = weather.days.slice(0, 7);
-const weatherText = weatherCodeToText(weatherNow.weatherCode);
-
-const SINHALA_WEEKDAYS = ['ඉරිදා', 'සඳුදා', 'අඟහරුවාදා', 'බදාදා', 'බ්‍රහස්පතින්දා', 'සිකුරාදා', 'සෙනසුරාදා'];
-const EN_SHORT_DATE = new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', day: 'numeric', month: 'short' });
-
-function colomboStamp(input: string): string {
-  const date = new Date(input);
-  if (Number.isNaN(date.getTime())) return '—';
-  const pad = (value: number) => String(value).padStart(2, '0');
-  const colombo = new Date(date.getTime() + 5.5 * 60 * 60 * 1000);
-  return `${colombo.getUTCFullYear()}-${pad(colombo.getUTCMonth() + 1)}-${pad(colombo.getUTCDate())} ${pad(colombo.getUTCHours())}:${pad(colombo.getUTCMinutes())}`;
-}
-
-const weatherUpdatedLabel = colomboStamp(weatherNow.time);
-const weatherAdvice = buildWeatherAdvice({ ...weather, days: weatherDays });
-const weatherToday = weatherDays[0] ?? null;
-const windWord = windLabel(weatherNow.windSpeed);
-const uvWord = uvLabel(weatherToday?.uvIndexMax ?? weatherNow.uvIndex);
-const airWord = humidityLabel(weatherNow.humidity);
-const feelsWord = feelsLabel(weatherNow);
-const todayRainChance =
-  weatherToday?.precipitationProbability === null || weatherToday?.precipitationProbability === undefined
-    ? '—'
-    : `${Math.round(weatherToday.precipitationProbability)}%`;
-const weatherRows = weatherDays.map((day, index) => {
-  const date = new Date(`${day.date}T00:00:00Z`);
-  const text = weatherCodeToText(day.weatherCode);
-  return {
-    index,
-    isToday: index === 0,
-    weekdaySi: SINHALA_WEEKDAYS[date.getUTCDay()] ?? '',
-    dateEn: EN_SHORT_DATE.format(date),
-    text,
-    tempMax: formatNumber(day.tempMax),
-    tempMin: formatNumber(day.tempMin),
-    rain: formatNumber(day.precipitation, 1),
-    rainChance: day.precipitationProbability === null ? '—' : `${Math.round(day.precipitationProbability)}%`,
-    uv: formatNumber(day.uvIndexMax, 0)
-  };
-});
-
-const pageTitle = `${ATTRACTION_LOCAL_NAME} | ${ATTRACTION_FULL_NAME} (${CITY_NAME}) — Visitor Guide: Opening Hours, History & Location`;
-const pageDescription = `${ATTRACTION_FULL_NAME} (${ATTRACTION_LOCAL_NAME}) — ${CITY_LOCAL_NAME}යේ පූජනීය බෝධි වෘක්ෂය සඳහා සංචාරක මාර්ගෝපදේශය: විවෘත වේලාව, ගාස්තු, ඇඳුම් නීති, ඉතිහාසය සහ අවට ස්ථාන. Plan your visit to ${ATTRACTION_FULL_NAME} in ${CITY_NAME}, ${STATE_PROVINCE}, ${COUNTRY_NAME}: opening hours, history, dress code, how to reach, and nearby ${NEARBY_LANDMARK_1} & ${NEARBY_LANDMARK_2}.`;
-const ogTitle = `${ATTRACTION_FULL_NAME} - ${CITY_NAME} Travel Guide`;
-const ogDescription = `${ATTRACTION_LOCAL_NAME} සඳහා සංචාරක මාර්ගෝපදේශය · Official visitor guide to ${ATTRACTION_FULL_NAME} in ${CITY_NAME}, ${STATE_PROVINCE}, ${COUNTRY_NAME}.`;
-
-/* 1. TouristAttraction 结构化数据（补全 @id / image / alternateName） */
-const attraction = {
-  '@context': 'https://schema.org',
-  '@type': 'TouristAttraction',
-  '@id': `${siteUrl}/#attraction`,
-  name: ATTRACTION_FULL_NAME,
-  alternateName: [
-    ATTRACTION_SHORT_NAME,
-    `${CITY_NAME} ${ATTRACTION_FULL_NAME}`,
-    ATTRACTION_LOCAL_NAME
-  ],
-  description: `Comprehensive visitor guide to ${ATTRACTION_FULL_NAME} in ${CITY_NAME}, ${STATE_PROVINCE}, ${COUNTRY_NAME}.`,
-  url: canonical,
-  image: [heroImage, pilgrimsImage, flagsImage],
-  telephone: TELEPHONE,
-  isAccessibleForFree: true,
-  publicAccess: true,
-  aggregateRating: {
-    '@type': 'AggregateRating',
-    ratingValue: RATING_VALUE,
-    reviewCount: REVIEW_COUNT_NUM,
-    bestRating: RATING_BEST
-  },
-  address: {
-    '@type': 'PostalAddress',
-    streetAddress: PLUS_CODE,
-    addressLocality: CITY_NAME,
-    addressRegion: STATE_PROVINCE,
-    postalCode: POSTAL_CODE,
-    addressCountry: COUNTRY_CODE_2LETTER
-  },
-  geo: {
-    '@type': 'GeoCoordinates',
-    latitude: LATITUDE,
-    longitude: LONGITUDE
-  },
-  hasMap: MAPS_SHARE_URL,
-  sameAs: [MAPS_SHARE_URL, GOVT_TOURISM_URL],
-  openingHoursSpecification: [
-    {
-      '@type': 'OpeningHoursSpecification',
-      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-      opens: '06:15',
-      closes: '21:00'
-    }
-  ]
-};
-
-/* 面包屑：地理归属层级 Sri Lanka → North Central Province → Anuradhapura → Jaya Sri Maha Bodhi */
-const breadcrumb = {
-  '@context': 'https://schema.org',
-  '@type': 'BreadcrumbList',
-  itemListElement: [
-    { '@type': 'ListItem', position: 1, name: `${COUNTRY_NAME} / ${COUNTRY_LOCAL_NAME}`, item: `${siteUrl}/#top` },
-    { '@type': 'ListItem', position: 2, name: `${STATE_PROVINCE} / ${STATE_PROVINCE_LOCAL}`, item: `${siteUrl}/#location` },
-    { '@type': 'ListItem', position: 3, name: `${CITY_NAME} / ${CITY_LOCAL_NAME}`, item: `${siteUrl}/#location` },
-    { '@type': 'ListItem', position: 4, name: `${ATTRACTION_FULL_NAME} / ${ATTRACTION_LOCAL_NAME}`, item: `${siteUrl}/#attraction` }
-  ]
-};
-
-/* 4. FAQPage 结构化数据（与页面可见内容一一对应） */
+const siteUrl = 'https://srimahabodhi.com';
+const maps = 'https://maps.app.goo.gl/Xm4DV3tAoWF94of36';
+const tourism = 'https://srilanka.travel/buddhist-places/attractions.php';
+const unesco = 'https://whc.unesco.org/en/list/200/';
+const title = 'ජය ශ්‍රී මහා බෝධිය ගැන | Jaya Sri Maha Bodhi: History & Visit Planning';
+const description = 'අනුරාධපුර ජය ශ්‍රී මහා බෝධිය: ඉතිහාසය, ගෞරවාන්විත වන්දනාව හා වේලාව/ගාස්තු තහවුරු කිරීම. Independent Sinhala & English guide to history, location and checks before visiting.';
+const photos = [
+  { src: '/images/jaya-sri-maha-bodhi-hero.jpg', width: 1280, height: 913, alt: 'A large tree beside the stone boundary of the Jaya Sri Maha Bodhi precinct', si: 'පූජනීය පරිශ්‍රයේ වෘක්ෂය හා ගල් බැම්ම', en: 'Tree and stone boundary in the precinct; photograph from 2018, not a current access survey.', author: 'Hirushini Dematagoda', source: 'https://commons.wikimedia.org/wiki/File:Sri_Maha_Bodhi,_Anuradhapura.jpg', license: 'CC BY-SA 4.0', licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/' },
+  { src: '/images/jaya-sri-maha-bodhi-pilgrims.jpg', width: 1280, height: 960, alt: 'Shrine building and worshippers at the Jaya Sri Maha Bodhi complex', si: 'පරිශ්‍රයේ ගොඩනැගිල්ල හා වන්දනාකරුවන්', en: 'Shrine building and worshippers, photographed in 2020. This is not a view of Ruwanwelisaya.', author: 'A.Savin, Wikipedia', source: 'https://commons.wikimedia.org/wiki/File:SL_Anuradhapura_asv2020-01_img04_Jaya_Sri_Maha_Bodhi.jpg', license: 'Free Art License 1.3', licenseUrl: 'https://artlibre.org/licence/lal/en/' },
+  { src: '/images/jaya-sri-maha-bodhiya-flags.jpg', width: 960, height: 1280, alt: 'Buddhist flags above visitors in the sacred precinct', si: 'පරිශ්‍රයේ බෞද්ධ කොඩි හා වන්දනාකරුවන්', en: 'Flags and visitors, photographed in 2017; current arrangements can differ.', author: 'Sendaru Perera', source: 'https://commons.wikimedia.org/wiki/File:Jaya_Sri_Maha_Bodhiya.jpg', license: 'CC BY-SA 4.0', licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/' }
+];
 const faqItems = [
-  {
-    q: `${ATTRACTION_LOCAL_NAME} (${ATTRACTION_FULL_NAME}) පිහිටා ඇත්තේ කොහේද? — Where is ${ATTRACTION_FULL_NAME} located?`,
-    a: `${ATTRACTION_FULL_NAME} (${ATTRACTION_LOCAL_NAME}) is located in ${CITY_NAME}, ${STATE_PROVINCE}, ${COUNTRY_NAME} (${PLUS_CODE}, coordinates ${LATITUDE}, ${LONGITUDE}). ${ATTRACTION_LOCAL_NAME} පිහිටා ඇත්තේ ${CITY_LOCAL_NAME}, ${STATE_PROVINCE_LOCAL}, ${COUNTRY_LOCAL_NAME} හි මහමෙව්නා උයනේ ය.`
-  },
-  {
-    q: `${ATTRACTION_SHORT_NAME} නැරඹීමට ගාස්තුවක් තිබේද? — Is ${ATTRACTION_SHORT_NAME} free to visit?`,
-    a: `පූජනීය බෝධියට ප්‍රවේශය සාමාන්‍යයෙන් නොමිලේ ලෙස දක්වා ඇත. නමුත් අනුරාධපුර පුරාවිද්‍යා කලාපයේ වෙනත් ස්ථාන සඳහා වෙනම ප්‍රවේශ ගාස්තු තිබිය හැක. Yes, ${ATTRACTION_FULL_NAME} is a public sacred space and is free to visit year-round; separate tickets may apply to other archaeological sites nearby.`
-  },
-  {
-    q: `විවෘත වේලාව කුමක්ද? — What are the opening hours?`,
-    a: `සාමාන්‍යයෙන් පෙ.ව. 6:15 සිට රාත්‍රී 9:00 දක්වා ලෙස ලැයිස්තුගත වේ. විශේෂ පූජා හෝ පෝය දිනවල වෙනස්කම් විය හැක. Listed hours are approximately 06:15–21:00 daily; check locally on Poya and festival days.`
-  },
-  {
-    q: 'නැරඹීමට හොඳම වේලාව කවදාද?',
-    a: 'අලුයම හෝ සවස උණුසුම අඩු වේලාව සන්සුන් අත්දැකීමක් ලබා දෙයි. පෝය දිනවල විශාල වන්දනාකරුවන් පිරිසක් පැමිණිය හැක.'
-  },
-  {
-    q: 'ඇඳුම් සහ හැසිරීම් පිළිබඳ නීති මොනවාද?',
-    a: 'උරහිස් හා දණ වැසෙන ගෞරවාන්විත ඇඳුම් ඇඳීම සුදුසුය. පූජනීය ප්‍රදේශයට ඇතුල්වීමට පෙර සපත්තු සහ හිස්වැසුම් ඉවත් කර නිහඬව හැසිරෙන්න.'
-  },
-  {
-    q: 'කොපමණ කාලයක් වෙන් කළ යුතුද?',
-    a: 'පූජනීය පරිශ්‍රය සඳහා සාමාන්‍යයෙන් මිනිත්තු 30 සිට පැය 1.5 දක්වා වෙන් කිරීම ප්‍රමාණවත්ය. අවට රුවන්වැලි මහා සෑය හා ලෝවාමහාපාය එක් කරන්නේ නම් වැඩි කාලයක් වෙන් කරන්න.'
-  },
-  {
-    q: 'ඡායාරූප ගත හැකිද?',
-    a: 'සාමාන්‍යයෙන් ගෞරවාන්විත ඡායාරූප ගැනීම සිදු කළ හැකි නමුත් වන්දනාකරුවන්, භික්ෂූන් වහන්සේලා හෝ පූජා කටයුතු බාධා නොකරන්න. පූජනීය වෘක්ෂය පිටුපස තබාගෙන පෝස් කිරීම වැනි ක්‍රියා වලින් වළකින්න.'
-  },
-  {
-    q: 'පෝය දිනවල යාම හොඳද?',
-    a: 'පෝය දිනවල ආගමික වාතාවරණය විශේෂ වේ, නමුත් විශාල වන්දනාකරුවන් පිරිසක් බලාපොරොත්තු විය යුතුය. සන්සුන් අත්දැකීමක් සඳහා සාමාන්‍ය සතියේ අලුයම වඩා සුදුසු විය හැක.'
-  },
-  {
-    q: 'ළමුන් සමඟ පැමිණිය හැකිද?',
-    a: 'ඔව්. පූජනීය බව පැහැදිලි කර දී ශබ්දය අඩු කරමින්, පූජා ප්‍රදේශවල දුවීමෙන් හෝ අතපත ගෑමෙන් වළක්වා ගැනීම සුදුසුය.'
-  },
-  {
-    q: 'නැරඹීමට වඩාත් සුදුසු සමය කුමක්ද? — What is the best season to visit?',
-    a: `අනුරාධපුරය වියළි කලාපයක පිහිටා ඇත. ජනවාරි සිට මාර්තු දක්වා කාලය සාපේක්ෂව සිසිල් හා වියළි වේ. අප්‍රේල් මාසය වඩාත් උණුසුම්ම වන අතර ඔක්තෝබර්–දෙසැම්බර් ඊසාන දිග මෝසම් වැසි ගෙන එයි. Anuradhapura lies in the dry zone: January–March is comparatively dry and pleasant, April is the hottest month, and October–December brings the north-east monsoon rains.`
-  },
-  {
-    q: 'වර්ෂාව පැමිණියහොත් කුඩයක් අවශ්‍යද? — Do I need rain gear?',
-    a: 'මෝසම් සමයේ (ඔක්තෝබර්–දෙසැම්බර්) සහ අප්‍රේල් මාසයේ සන්ධ්‍යා කුණාටු වලදී සැහැල්ලු වැසි කබායක් හෝ කුඩයක් ප්‍රයෝජනවත් වේ. වියළි කාලයේ දීම කුඩය හිරු සෙවන සඳහා ද භාවිතා කළ හැක.'
-  },
-  {
-    q: 'වැසිකිළි, පානීය ජලය සහ විවේක ස්ථාන තිබේද? — Are there toilets, drinking water and rest areas?',
-    a: 'පූජනීය නගර කලාපයේ ප්‍රවේශ මාර්ග අසල සහ වන්දනා මාර්ගවල පොදු වැසිකිළි පහසුකම් සාමාන්‍යයෙන් දක්නට ලැබේ. ජල බෝතලයක්, පටක සහ අත් සනීපකාරකයක් සමඟ පැමිණීම වඩාත් ආරක්ෂිතය. Public toilets are usually found near the approach roads and pilgrim routes; carry your own water, tissues and sanitiser.'
-  },
-  {
-    q: 'සීමිත සංචලතාවක් ඇති අමුත්තන්ට පැමිණිය හැකිද? — Is the site accessible for visitors with limited mobility?',
-    a: 'ප්‍රධාන ප්‍රවේශ මාර්ග සාපේක්ෂව සමතල වන අතර වාහනයෙන් හැකිතාක් ආසන්නයට පැමිණිය හැක. පාවහන් ඉවත් කළ යුතු ප්‍රදේශවල බිම උණුසුම් විය හැකි බැවින් මේස් සහ සහායකයෙකුගේ සහාය ප්‍රයෝජනවත් වේ. Approach roads are relatively flat and vehicles can get close; expect to remove footwear, so socks and a companion help.'
-  },
-  {
-    q: 'ඩ්‍රෝන යන්ත්‍ර හෝ වෘත්තීය ඡායාරූපකරණයට අවසර තිබේද? — Are drones allowed?',
-    a: 'පූජනීය පරිශ්‍රයේ සහ පුරාවිද්‍යා කලාපයේ ඩ්‍රෝන භාවිතය සාමාන්‍යයෙන් සීමා කර ඇති අතර වෙනම අවසර අවශ්‍ය විය හැක. Drone use is generally restricted over the sacred precinct and archaeological zone; assume permission is required.'
-  },
-  {
-    q: 'රථගාල් සහ විදුලි වාහන ආරෝපණ පහසුකම් තිබේද? — Is there parking and EV charging?',
-    a: 'පූජනීය කලාපයට පිටතින් රථගාල් ස්ථාන භාවිතා කළ හැකි නමුත් පෝය සහ උත්සව දිනවල ඉඩ සීමිත වේ. විදුලි වාහන සඳහා පොදු ආරෝපණ ස්ථාන සීමිත බැවින් ගමනට පෙර සැලසුම් කරන්න. Parking exists outside the sacred zone but is limited on Poya and festival days; public EV charging is limited, so plan ahead.'
-  }
+  { qSi: 'ජය ශ්‍රී මහා බෝධිය පිහිටා ඇත්තේ කොහේද?', qEn: 'Where is Jaya Sri Maha Bodhi?', si: 'එය ශ්‍රී ලංකාවේ අනුරාධපුර මහමෙව්නා උයනේ පිහිටි පූජනීය බෝධි වෘක්ෂයයි. ගමනට පෙර සිතියමේ ස්ථානය හා එදින භාවිත කළ හැකි පිවිසුම තහවුරු කරන්න.', en: 'It is the sacred Bodhi tree in the Mahameghawana (Mahamewna Gardens), Anuradhapura, Sri Lanka. Confirm the map pin and the usable entrance before travelling.' },
+  { qSi: 'ජය ශ්‍රී මහා බෝධියේ ඉතිහාසය කුමක්ද?', qEn: 'What is its historical significance?', si: 'යුනෙස්කෝ විස්තරය සංඝමිත්තා තෙරණිය විසින් ක්‍රි.පූ. තුන්වන සියවසේ ගෙන ආ බෝධි අංකුරය සමඟ අනුරාධපුරයේ ඉතිහාසය සම්බන්ධ කරයි. ශ්‍රී ලංකා සංචාරක ද්වාරය දේවානම්පියතිස්ස රජුගේ රෝපණය පිළිබඳ සම්ප්‍රදාය විස්තර කරයි.', en: 'UNESCO links the sacred city to a Bodhi cutting brought by Sanghamitta in the third century BCE. Sri Lanka Tourism describes its planting by King Devanampiyatissa. This is historical and religious context, not a scientific measurement of the tree’s age.' },
+  { qSi: 'දැනට විවෘත වේලාව කුමක්ද?', qEn: 'What are the current opening hours?', si: '2026 ඔක්තෝබර් 29 දින Google සිතියමේ එදින රාත්‍රී 9ට වැසෙන බව පෙන්වීය. මෙය තෙවන පාර්ශ්වයේ එක් දින සටහනක් පමණි. සම්පූර්ණ වර්තමාන නිල කාලසටහනක් අපට තහවුරු කර නැත; පැමිණීමට පෙර පරිශ්‍රයෙන් විමසන්න.', en: 'Google Maps showed a 21:00 closing time for the day checked, 29 October 2026. That is a third-party snapshot, not a confirmed recurring temple schedule. We have not verified a current official full timetable; ask the precinct before visiting.' },
+  { qSi: 'ප්‍රවේශ ගාස්තුවක් තිබේද?', qEn: 'Is admission free or ticketed?', si: 'මෙම පරිශ්‍රය සඳහා වර්තමාන නිල ගාස්තු ලැයිස්තුවක් තහවුරු කර නැත. නොමිලේ බව උපකල්පනය නොකරන්න. Central Cultural Fund අනුරාධපුර පුරාවිද්‍යා ප්‍රවේශ පත්‍රය හා මෙම පූජනීය පරිශ්‍රයේ නීති එකම දෙයක් ලෙස නොසලකන්න.', en: 'We have not verified a current official admission tariff for this precinct, so do not assume free entry. Central Cultural Fund tickets for Anuradhapura archaeological sites must not be treated as proof of this temple’s admission terms. Confirm the exact place, visitor category and any charge locally before paying.' },
+  { qSi: 'වන්දනාවට සූදානම් වන්නේ කෙසේද?', qEn: 'How should visitors prepare respectfully?', si: 'ගෞරවාන්විතව උරහිස් හා දණ වැසෙන ඇඳුම් තෝරා, පාවහන් හා හිස්වැසුම් පිළිබඳ ස්ථානීය උපදෙස් පිළිපදින්න. නිහඬව හැසිරී වන්දනාකරුවන්ට ඉඩ දෙන්න. ඡායාරූප ගැනීමට පෙර අවසර විමසන්න.', en: 'Choose modest clothing covering shoulders and knees, and follow posted instructions about footwear and headwear. Keep quiet and give worshippers space. Ask before photographing people or ceremonies; do not assume permission for drones or professional equipment.' },
+  { qSi: 'රෝද පුටු ප්‍රවේශය හා පහසුකම් තහවුරු ද?', qEn: 'Are accessible routes and facilities verified?', si: 'පියගැට රහිත මාර්ග, රථ බැස්සවීම, වැසිකිළි, පානීය ජලය හෝ ආසන පිළිබඳ වර්තමාන සමීක්ෂණයක් අප සතුව නැත. ඔබට අවශ්‍ය පහසුකම් හා එදින පිවිසුම ගමනට පෙර විමසන්න.', en: 'We do not have a current audit of step-free routes, drop-off points, toilets, drinking water or seating. Confirm the specific facilities you need and the entrance available that day before travelling; this guide does not guarantee wheelchair access.' },
+  { qSi: 'කාලගුණය හා සංචාරය සැලසුම් කරන්නේ කෙසේද?', qEn: 'How should I plan around the weather?', si: 'නවතම අනාවැකිය හා ශ්‍රී ලංකා කාලගුණ විද්‍යා දෙපාර්තමේන්තුවේ අනතුරු ඇඟවීම් බලන්න. තද වැසි හෝ අකුණු ඇති විට නිරාවරණ බිම්වල හෝ විශාල ගස් යට රැඳී නොසිටින්න. උණුසුම හා තෙත් ගල් බිම් සැලකිල්ලට ගන්න.', en: 'Check the latest forecast and Sri Lanka Department of Meteorology warnings. During lightning or heavy rain, avoid exposed ground and sheltering beneath large trees. Allow for heat and slippery wet surfaces; weather data does not confirm that the precinct is open.' }
 ];
-
-const faq = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  '@id': `${siteUrl}/#faq`,
-  mainEntity: faqItems.map((item) => ({
-    '@type': 'Question',
-    name: item.q,
-    acceptedAnswer: { '@type': 'Answer', text: item.a }
-  }))
-};
-
-/* 5. WebSite + Organization 结构化数据（E-E-A-T / 知识面板 / 站点链接） */
-const siteGraph = {
-  '@context': 'https://schema.org',
-  '@graph': [
-    {
-      '@type': 'WebSite',
-      '@id': `${siteUrl}/#website`,
-      url: siteUrl,
-      name: `${ATTRACTION_FULL_NAME} Visitor Guide`,
-      alternateName: [ATTRACTION_SHORT_NAME, ATTRACTION_LOCAL_NAME],
-      inLanguage: 'si',
-      description: `Visitor guide to ${ATTRACTION_FULL_NAME} in ${CITY_NAME}, ${STATE_PROVINCE}, ${COUNTRY_NAME}: opening hours, history, dress code, how to reach, and nearby ${NEARBY_LANDMARK_1} & ${NEARBY_LANDMARK_2}.`,
-      publisher: { '@id': `${siteUrl}/#organization` }
-    },
-    {
-      '@type': 'Organization',
-      '@id': `${siteUrl}/#organization`,
-      name: `${ATTRACTION_FULL_NAME} Visitor Guide`,
-      url: siteUrl,
-      logo: `${siteUrl}/icons/apple-touch-icon.png`,
-      sameAs: [MAPS_SHARE_URL, GOVT_TOURISM_URL]
-    }
+const nav = [['about','හැඳින්වීම / About'],['history','ඉතිහාසය / History'],['visit','වේලාව හා ගාස්තු / Visit'],['weather','කාලගුණය / Weather'],['location','ස්ථානය / Location'],['plan','සැලසුම / Planning'],['facilities','පහසුකම් / Access'],['gallery','ඡායාරූප / Photos'],['faq','ප්‍රශ්න / FAQ'],['sources','මූලාශ්‍ර / Sources'],['privacy','පෞද්ගලිකත්වය / Privacy']];
+const graph = {
+  '@context': 'https://schema.org', '@graph': [
+    { '@type':'WebSite', '@id':`${siteUrl}/#website`, url:siteUrl+'/', name:'Jaya Sri Maha Bodhi Independent Visitor Guide', inLanguage:['si','en'], publisher:{'@id':`${siteUrl}/#publisher`} },
+    { '@type':'Organization', '@id':`${siteUrl}/#publisher`, name:'Jaya Sri Maha Bodhi Independent Visitor Guide', url:siteUrl+'/', description:'Independent nonprofit tourism and educational information guide; not the temple or a government authority.' },
+    { '@type':'WebPage', '@id':`${siteUrl}/#webpage`, url:siteUrl+'/', name:title, description, inLanguage:['si','en'], isPartOf:{'@id':`${siteUrl}/#website`}, about:{'@id':`${siteUrl}/#place`}, dateModified:'2026-10-29' },
+    { '@type':'TouristAttraction', '@id':`${siteUrl}/#place`, name:'Jaya Sri Maha Bodhi', alternateName:['ජය ශ්‍රී මහා බෝධිය','Sri Maha Bodhi'], address:{'@type':'PostalAddress',addressLocality:'Anuradhapura',addressCountry:'LK'}, hasMap:maps, image:photos.map(p=>siteUrl+p.src) },
+    { '@type':'FAQPage', '@id':`${siteUrl}/#faq`, mainEntity:faqItems.map(f=>({'@type':'Question',name:f.qSi+' — '+f.qEn,acceptedAnswer:{'@type':'Answer',text:f.si+' '+f.en}})) }
   ]
 };
-
-/* ------------------------------------------------------------------ *
- * 季度游览策略（基于常年气候常态：斯里兰卡气象局 / NOAA 30 年气候平均态）
- * ------------------------------------------------------------------ */
-const seasonQuarters = [
-  {
-    quarter: 'Q1',
-    monthsSi: 'ජනවාරි – මාර්තු',
-    monthsEn: 'January – March',
-    climateSi: 'වියළි සමයේ අග භාගය. දහවල් 29–34°C පමණ, රාත්‍රී සිසිල්, වර්ෂාව අවම.',
-    climateEn: 'Late dry season. Days around 29–34°C, cooler nights, minimal rain.',
-    crowdSi: 'උච්ච සංචාරක සමය; උදෑසන හා සන්ධ්‍යාවේ ජනාකීර්ණ විය හැක.',
-    crowdEn: 'Peak visitor season; busy around dawn and dusk.',
-    natureSi: 'වැව් ජල මට්ටම් අඩුවීමට පටන් ගනී; පක්ෂි නිරීක්ෂණයට හිතකර උදෑසන.',
-    natureEn: 'Tanks begin to recede; good early-morning birdwatching.',
-    tipSi: 'අලුයම 6:15–8:00 හෝ සවස 17:00 න් පසු පැමිණීම වඩාත් සුවපහසුය.',
-    tipEn: 'Arrive 06:15–08:00 or after 17:00 for the most comfortable conditions.',
-    verdictSi: 'වඩාත් සුදුසුම',
-    verdictEn: 'Best window'
-  },
-  {
-    quarter: 'Q2',
-    monthsSi: 'අප්‍රේල් – ජූනි',
-    monthsEn: 'April – June',
-    climateSi: 'වසරේ උණුසුම්ම කාලය. අප්‍රේල් මැද දහවල් 35°C ඉක්මවිය හැක; සන්ධ්‍යා කුණාටු හැක.',
-    climateEn: 'Hottest period of the year; midday can exceed 35°C in April with evening storms.',
-    crowdSi: 'මධ්‍යම ප්‍රමාණයේ ජනතාවක්; අලුයම සන්සුන්ය.',
-    crowdEn: 'Moderate crowds; dawn stays relatively calm.',
-    natureSi: 'ගස් සෙවන වැදගත්; වියළි බිම් උණුසුම්, පාවහන් නොමැතිව ගමන් අපහසුය.',
-    natureEn: 'Shade matters; bare ground gets very hot for barefoot walking.',
-    tipSi: 'ජලය, සෙවන සහ මේස් රැගෙන එන්න. දහවල් 11:00–15:00 දිගු ඇවිදීමෙන් වළකින්න.',
-    tipEn: 'Carry water, shade and socks; avoid long walks between 11:00 and 15:00.',
-    verdictSi: 'උණුසුම් — පූර්ව සූදානම අවශ්‍ය',
-    verdictEn: 'Hot — plan around midday'
-  },
-  {
-    quarter: 'Q3',
-    monthsSi: 'ජූලි – සැප්තැම්බර්',
-    monthsEn: 'July – September',
-    climateSi: 'නිරිත දිග මෝසම්; අනුරාධපුරය වැසි සෙවන කලාපයක බැවින් සාපේක්ෂව වියළි හා සුළං සහිතය.',
-    climateEn: 'South-west monsoon; Anuradhapura sits in the rain shadow, so it stays relatively dry and breezy.',
-    crowdSi: 'අඩු ජනතාවක්; ඡායාරූපකරණයට හිතකර හිස් අවස්ථා.',
-    crowdEn: 'Fewer visitors; quieter frames for photography.',
-    natureSi: 'සුළඟින් කොඩි සහ කොළ චලනය වේ; වලාකුළු සහිත ආලෝකය හොඳය.',
-    natureEn: 'Flags and foliage move with the wind; cloud light is excellent.',
-    tipSi: 'සැහැල්ලු වැසි කබායක් සහ සුළඟට ඔරොත්තු දෙන තොප්පියක් ප්‍රයෝජනවත් වේ.',
-    tipEn: 'A light rain shell and a wind-resistant hat are useful.',
-    verdictSi: 'ඡායාරූප හා සන්සුන් ගමනට සුදුසු',
-    verdictEn: 'Good for photography'
-  },
-  {
-    quarter: 'Q4',
-    monthsSi: 'ඔක්තෝබර් – දෙසැම්බර්',
-    monthsEn: 'October – December',
-    climateSi: 'ඊසාන දිග මෝසම්; නොවැම්බර්–දෙසැම්බර් වැඩිම වර්ෂාව හා ආර්ද්‍රතාව.',
-    climateEn: 'North-east monsoon; November–December brings the heaviest rain and humidity.',
-    crowdSi: 'උත්සව දිනවල (වෙසක්, පොසොන් හැර) විශාල වන්දනාකරුවන් පිරිසක්.',
-    crowdEn: 'Large pilgrim numbers on festival days.',
-    natureSi: 'වැව් පිරී, හරිත භූමිය සහ ජල පක්ෂීන් දැකිය හැක; මදුරුවන් වැඩිය.',
-    natureEn: 'Tanks fill, landscapes turn green, waterbirds return; mosquitoes increase.',
-    tipSi: 'කුඩය/වැසි කබාය, ලිස්සා නොයන පාවහන් සහ මදුරු විකර්ෂක රැගෙන එන්න.',
-    tipEn: 'Bring an umbrella, non-slip footwear and insect repellent.',
-    verdictSi: 'වැසි සඳහා සූදානම් වන්න',
-    verdictEn: 'Prepare for rain'
-  }
-];
-
-/* 按人群定制的游览方案 */
-const audiencePlans = [
-  {
-    icon: '👨‍👩‍👧',
-    titleSi: 'පවුල් සහ ළමුන් සමඟ',
-    titleEn: 'Families with children',
-    durationSi: 'පැය 2–3',
-    durationEn: '2–3 hours',
-    paceSi: 'සෙමින්, නිතර විවේක',
-    paceEn: 'Slow pace, frequent breaks',
-    steps: [
-      'රථගාලෙන් පසු සපත්තු/හිස්වැසුම් භාර දී පිවිසුම් මාර්ගයට පිවිසෙන්න',
-      'පූජනීය වෘක්ෂය වටා පිටත මාර්ගයෙන් එක් වටයක්',
-      'සෙවන සහිත ස්ථානයක කෙටි විවේකයක් සහ පූජා වතාවත් නිරීක්ෂණය',
-      'ළමුන් සඳහා සරල පැහැදිලි කිරීමක්: “මෙය ජීවමාන පූජනීය වෘක්ෂයකි”'
-    ],
-    stepsEn: [
-      'Leave footwear and headwear at the drop-off, then follow the approach path',
-      'One calm circuit around the outer walkway of the sacred tree',
-      'Short rest in the shade and observe the offering rituals',
-      'Explain to children that this is a living sacred tree, not a playground'
-    ],
-    cautionSi: 'ළමුන් අතින් අල්ලාගෙන යන්න; දුවීම, කෑගැසීම සහ වැට පැනීමෙන් වළක්වන්න.',
-    cautionEn: 'Hold hands, and avoid running, shouting or climbing on any wall.'
-  },
-  {
-    icon: '📷',
-    titleSi: 'ඡායාරූප සහ ස්වභාව නිරීක්ෂණ',
-    titleEn: 'Photography & nature',
-    durationSi: 'පැය 3–4',
-    durationEn: '3–4 hours',
-    paceSi: 'ආලෝකය අනුව නම්‍යශීලී',
-    paceEn: 'Flexible, light-driven',
-    steps: [
-      'අලුයම 6:15–8:00: වෘක්ෂ ශීර්ෂය හරහා පහත් ආලෝකය සහ උදෑසන පූජා',
-      '8:00–11:00: කොඩි, සෙවනැලි සහ වන්දනාකරුවන්ගේ චලනය',
-      '16:30–18:45: උණුසුම් පසුබිම් ආලෝකය සහ සන්ධ්‍යා පහන්',
-      'අවට වැව් හා ගස් පේළිවල පක්ෂි නිරීක්ෂණය'
-    ],
-    stepsEn: [
-      '06:15–08:00: low light through the canopy and the morning offerings',
-      '08:00–11:00: flags, shadows and the movement of pilgrims',
-      '16:30–18:45: warm backlight and the evening lamp lighting',
-      'Birdwatching around the nearby tanks and tree lines'
-    ],
-    cautionSi: 'ෆ්ලෑෂ් සහ ඩ්‍රෝන භාවිතයෙන් වළකින්න; වන්දනාකරුවන්ගේ මුහුණු ආසන්නයෙන් ඡායාරූප නොගන්න.',
-    cautionEn: 'No flash or drones; avoid close-up portraits of worshippers.'
-  },
-  {
-    icon: '♿',
-    titleSi: 'අඩු ශ්‍රම සහ ප්‍රවේශ්‍යතාව',
-    titleEn: 'Low-mobility & accessible',
-    durationSi: 'පැය 1.5–2',
-    durationEn: '1.5–2 hours',
-    paceSi: 'කෙටි කොටස්, නිතර වාඩිවීම',
-    paceEn: 'Short segments, frequent seating',
-    steps: [
-      'වාහනයෙන් හැකිතාක් පිවිසුම් දොරටුවට ආසන්නයට පැමිණෙන්න',
-      'සමතල ප්‍රධාන මාර්ගය භාවිතා කර වෘක්ෂයේ දර්ශන ස්ථානයට යන්න',
-      'සෙවන සහිත ආසනයක වාඩි වී පූජා වතාවත් නරඹන්න',
-      'ආපසු යාමට පෙර සෙවනේ විවේකයක්'
-    ],
-    stepsEn: [
-      'Arrive by vehicle as close to the entrance gate as allowed',
-      'Use the flatter main approach to the viewing platform of the tree',
-      'Sit in a shaded seat to watch the offerings',
-      'Rest in the shade before heading back'
-    ],
-    cautionSi: 'පාවහන් ඉවත් කළ පසු බිම උණුසුම් විය හැක — මේස් යුගලයක් සහ සහායකයෙකු රැගෙන එන්න.',
-    cautionEn: 'Bare ground can be hot — bring socks and a companion.'
-  }
-];
-
-/* 推荐通用游览路线（半日 / 全日） */
-const routeHalfDay = [
-  { time: '0:00', titleSi: 'පැමිණීම, රථගාල සහ සපත්තු භාරදීම', titleEn: 'Arrive, park and deposit footwear', noteSi: 'ජල බෝතලයක් සහ හිස්වැස්මක් සූදානම් කරන්න', noteEn: 'Have water and a hat ready' },
-  { time: '0:30', titleSi: 'ජය ශ්‍රී මහා බෝධිය — පිටත වන්දනා මාර්ගය', titleEn: 'Jaya Sri Maha Bodhi — outer circuit', noteSi: 'නිහඬව, දක්ෂිණාවර්තව ගමන් කරන්න', noteEn: 'Walk quietly, clockwise' },
-  { time: '1:15', titleSi: 'සෙවනේ කෙටි විවේකයක් සහ පූජා නිරීක්ෂණය', titleEn: 'Shaded rest and observing the offerings', noteSi: 'ඡායාරූප ගැනීමට පෙර අවසර ගන්න', noteEn: 'Ask before photographing people' },
-  { time: '1:45', titleSi: `${NEARBY_LANDMARK_1} වෙත කෙටි ගමන`, titleEn: `Short transfer to ${NEARBY_LANDMARK_1}`, noteSi: 'පයින් හෝ කෙටි රථ ගමනකින්', noteEn: 'On foot or a short ride' },
-  { time: '2:30', titleSi: `${NEARBY_LANDMARK_2} ශිලා ස්තම්භ`, titleEn: `${NEARBY_LANDMARK_2} stone columns`, noteSi: 'පුරාවිද්‍යා කලාපයේ සලකුණු පිළිපදින්න', noteEn: 'Follow archaeological zone signs' },
-  { time: '3:15', titleSi: 'සරල ආහාර විවේකයක් සහ ජලය', titleEn: 'Simple meal break and rehydration', noteSi: 'පවුලේ ආපනශාලා / තේ හා කෙටි ආහාර වර්ග', noteEn: 'Family restaurant or tea-short-eat style stop' }
-];
-
-const routeFullDay = [
-  { time: '06:15', titleSi: 'අලුයම බෝධි දර්ශනය', titleEn: 'Dawn at the Bodhi tree', noteSi: 'සිසිල්ම හා සන්සුන්ම කාලය', noteEn: 'Coolest and calmest window' },
-  { time: '08:00', titleSi: 'උදෑසන ආහාරය', titleEn: 'Breakfast', noteSi: 'දේශීය තේ, පළතුරු සහ සැහැල්ලු ආහාර වර්ග', noteEn: 'Local tea, fruit and light short eats' },
-  { time: '09:00', titleSi: 'ථූපාරාමය', titleEn: 'Thuparama', noteSi: 'මුල්කාලීන ස්තූප උරුමය', noteEn: 'Early stupa heritage' },
-  { time: '10:30', titleSi: NEARBY_LANDMARK_1, titleEn: NEARBY_LANDMARK_1, noteSi: 'මහා ස්තූපය වටා පිටත මාර්ගය', noteEn: 'Outer walkway around the great stupa' },
-  { time: '12:00', titleSi: 'දහවල් ආහාරය සහ දිගු විවේකය', titleEn: 'Lunch and a long break', noteSi: '11:00–15:00 අතර දිගු ඇවිදීමෙන් වළකින්න', noteEn: 'Avoid long walks between 11:00 and 15:00' },
-  { time: '14:30', titleSi: `${NEARBY_LANDMARK_2} සහ පුරාවිද්‍යා ප්‍රදේශය`, titleEn: `${NEARBY_LANDMARK_2} and the archaeological area`, noteSi: 'සෙවන සහිත මාර්ග තෝරන්න', noteEn: 'Pick the shaded route' },
-  { time: '16:30', titleSi: 'නැවත බෝධිය වෙත — සන්ධ්‍යා පහන්', titleEn: 'Back to the Bodhi tree for the evening lamps', noteSi: 'දවසේ දෙවන හොඳම ආලෝකය', noteEn: 'The second-best light of the day' },
-  { time: '18:00', titleSi: 'ගමන අවසන් කිරීම', titleEn: 'End of the day', noteSi: 'රාත්‍රී ගමනක් නම් පෙර සැලසුම් කරන්න', noteEn: 'Plan ahead if travelling after dark' }
-];
-
-/* 访客服务与周边设施（仅描述类型，不推荐具体商家） */
-const facilityGroups = [
-  {
-    icon: '🚻',
-    titleSi: 'වැසිකිළි සහ සනීපාරක්ෂාව',
-    titleEn: 'Toilets & hygiene',
-    items: [
-      'පූජනීය කලාපයේ ප්‍රවේශ මාර්ග හා වන්දනා මාර්ග අසල පොදු වැසිකිළි පහසුකම්',
-      'පොදු පහසුකම්වල සැපයුම් වෙනස් විය හැක — පටක, අත් සනීපකාරකයක් සහ තෙත් පිසදැම් රැගෙන එන්න',
-      'ළමුන් හා වැඩිහිටියන් සඳහා පෙර විවේක ස්ථානයක් සොයා ගන්න'
-    ],
-    itemsEn: [
-      'Public toilets are usually located near the approach roads and pilgrim routes',
-      'Supplies vary — carry tissues, hand sanitiser and wet wipes',
-      'Locate the nearest rest point before starting the circuit with children or elders'
-    ]
-  },
-  {
-    icon: '🅿️',
-    titleSi: 'රථගාල සහ ප්‍රවේශය',
-    titleEn: 'Parking & access',
-    items: [
-      'පූජනීය කලාපයෙන් පිටත සාමාන්‍ය රථගාල් සහ බැස්සවීමේ ස්ථාන',
-      'පෝය සහ උත්සව දිනවල ඉඩ සීමිත වේ — කලින් පැමිණීම වඩාත් හොඳය',
-      'වන්දනාකරුවන්ට ප්‍රමුඛතාව දෙන්න; වාහනයේ වටිනා දෑ නොතබන්න'
-    ],
-    itemsEn: [
-      'General parking and drop-off points sit outside the sacred zone',
-      'Space is limited on Poya and festival days — arrive early',
-      'Give way to pilgrims and leave no valuables in the vehicle'
-    ]
-  },
-  {
-    icon: '🛏️',
-    titleSi: 'නවාතැන්',
-    titleEn: 'Accommodation',
-    items: [
-      'නගරයේ අයවැය හිතකාමී නවාතැන් සහ ගෙස්ට් හවුස්',
-      'මධ්‍යම පන්තියේ හෝටල් සහ පවුලේ හෝම්ස්ටේ',
-      'උච්ච සමයේ සහ පෝය සති අන්තවල කලින් වෙන් කිරීම සුදුසුය'
-    ],
-    itemsEn: [
-      'Budget guesthouses in town',
-      'Mid-range hotels and family homestays',
-      'Book ahead for peak season and Poya weekends'
-    ]
-  },
-  {
-    icon: '🛒',
-    titleSi: 'සිල්ලර සහ දෛනික අවශ්‍යතා',
-    titleEn: 'Groceries & daily needs',
-    items: [
-      'කුඩා සිල්ලර වෙළඳසැල් සහ සුපිරි වෙළඳසැල්',
-      'ඖෂධාගාර සහ මූලික සෞඛ්‍ය අවශ්‍යතා',
-      'බැංකු ශාඛා සහ ATM යන්ත්‍ර (මුදල් රැගෙන යාම සුදුසුය)',
-      'පූජා භාණ්ඩ (මල්, පහන්, සුවඳ දුම්) සඳහා කුඩා වෙළඳසැල්'
-    ],
-    itemsEn: [
-      'Small groceries and supermarkets',
-      'Pharmacies for basic health supplies',
-      'Bank branches and ATMs (carry some cash)',
-      'Small stalls for offering items such as flowers and lamps'
-    ]
-  },
-  {
-    icon: '⛽',
-    titleSi: 'ඉන්ධන සහ ආරෝපණ',
-    titleEn: 'Fuel & charging',
-    items: [
-      'නගරයේ හා ප්‍රධාන මාර්ග අසල ඉන්ධන පිරවුම්හල්',
-      'පොදු විදුලි වාහන ආරෝපණ ස්ථාන සීමිතය — ගමනට පෙර සැලසුම් කරන්න',
-      'දිගු ගමනක් නම් ආරෝපණ කේබලයක් සහ බල බැංකුවක් රැගෙන යන්න'
-    ],
-    itemsEn: [
-      'Fuel stations in town and along the main approach roads',
-      'Public EV charging points are limited — plan the route in advance',
-      'Carry your charging cable and a power bank for long days'
-    ]
-  },
-  {
-    icon: '🏥',
-    titleSi: 'සෞඛ්‍ය සහ ආරක්ෂාව',
-    titleEn: 'Health & safety',
-    items: [
-      'රජයේ රෝහල් සහ පෞද්ගලික සායන නගරයේ ඇත',
-      'නිතර ගන්නා ඖෂධ, විෂබීජ නාශක සහ මදුරු විකර්ෂක රැගෙන එන්න',
-      'හදිසි අංක සහ නවාතැන් ලිපිනය සටහන් කර තබන්න'
-    ],
-    itemsEn: [
-      'Government hospitals and private clinics operate in town',
-      'Bring regular medication, sanitiser and insect repellent',
-      'Keep emergency numbers and your accommodation address to hand'
-    ]
-  }
-];
-
-/* 科普与访客责任 */
-const scienceNotes = [
-  {
-    titleSi: 'වෘක්ෂ විද්‍යාව: ෆිකස් රිලිජියෝසා',
-    titleEn: 'Botany: Ficus religiosa',
-    bodySi: 'බෝධි වෘක්ෂය ෆිකස් රිලිජියෝසා (Ficus religiosa) විශේෂයට අයත් ය. හෘදයාකාර පත්‍රයේ දිගු අග්‍රය (“ඩ්‍රිප් ටිප්”) තෙත් දේශගුණයේ ජලය ඉක්මනින් ගලා යාමට උපකාරී වන ලක්ෂණයකි. ෆිකස් ගණයේ ගස් විශේෂිත අත්තික්කා බඹරුන් (fig wasp) සමඟ සහජීවන සම්බන්ධයක් පවත්වාගෙන යයි.',
-    bodyEn: 'The Bodhi tree belongs to the species Ficus religiosa, the sacred fig. Its heart-shaped leaves end in an extended “drip tip” that sheds water quickly in humid climates. Like other figs, the genus relies on a highly specific fig-wasp pollination partnership.'
-  },
-  {
-    titleSi: 'වයස තක්සේරුව සහ වාර්තා',
-    titleEn: 'Age estimation and records',
-    bodySi: 'නිවර්තන වෘක්ෂවල වාර්ෂික වළය (growth rings) පැහැදිලි නොවන බැවින් වෘක්ෂ වයස සාමාන්‍යයෙන් වළය ගණනයෙන් නොව ඓතිහාසික වාර්තා හා සම්ප්‍රදායික මූලාශ්‍රවලින් උපුටා දක්වයි. එබැවින් “වසර දෙදහසකට වැඩි” යන ප්‍රකාශය ලේඛනගත උරුමයක් මත පදනම් වේ.',
-    bodyEn: 'Tropical trees often lack clear annual growth rings, so the age of this tree is cited from historical records and traditional chronicles rather than from ring counts. The “over two thousand years” figure is therefore a documented heritage claim, not a dendrochronological measurement.'
-  },
-  {
-    titleSi: 'වියළි කලාප පරිසරය සහ පුරාණ ජලාශ',
-    titleEn: 'Dry-zone ecology and ancient tanks',
-    bodySi: 'අනුරාධපුරය ශ්‍රී ලංකාවේ වියළි කලාපයේ පිහිටා ඇති අතර මෝසම් වර්ෂාව රඳා පවතී. පුරාණ වැව් (tank) පද්ධතිය නගරයේ ජල සම්පාදනයේ පදනම වූ අතර අද ද මෙම ජලාශ පක්ෂීන් හා ක්ෂුද්‍ර දේශගුණය සඳහා වැදගත්ය.',
-    bodyEn: 'Anuradhapura sits in Sri Lanka’s dry zone, where rainfall depends on the two monsoons. The ancient tank (reservoir) network once sustained the city and still shapes local birdlife and microclimate today.'
-  },
-  {
-    titleSi: 'වන සතුන් සහ සන්සුන් හැසිරීම',
-    titleEn: 'Wildlife and quiet behaviour',
-    bodySi: 'පරිශ්‍රයේ සහ අවට ගස් පේළිවල වඳුරන්, ලේනුන් සහ පක්ෂීන් දැකිය හැක. සතුන්ට ආහාර දීමෙන් වළකින්න; ආහාර බෑග් විවෘතව තැබීමෙන් වළකින්න.',
-    bodyEn: 'Macaques, squirrels and a wide range of birds live around the precinct and its tree lines. Do not feed animals and keep food bags closed.'
-  }
-];
-
-const visitorResponsibilities = [
-  'පූජනීය වෘක්ෂයට, කොටුවලට හෝ ශිලාවලට අත නොතබන්න; නූල්, රිබන් හෝ සිහිවටන බැඳීමෙන් වළකින්න.',
-  'කැටයම් හෝ සලකුණු නොතබන්න. ස්ථානය යුනෙස්කෝ ලෝක උරුම ප්‍රදේශයක කොටසකි.',
-  'ඩ්‍රෝන භාවිතයෙන් වළකින්න; වෘත්තීය උපකරණ සඳහා වෙනම අවසර අවශ්‍ය විය හැක.',
-  'පූජා භාණ්ඩවල ඇසුරුම්, ප්ලාස්ටික් සහ වෙනත් අපද්‍රව්‍ය ආපසු රැගෙන යන්න.',
-  'භික්ෂූන් වහන්සේලා හා වන්දනාකරුවන්ගේ ගමන් මාර්ග අවහිර නොකරන්න; ශබ්දය අඩු කරන්න.',
-  'දේශීය මඟ පෙන්වීම් සහ ස්ථානීය නිලධාරීන්ගේ උපදෙස් පිළිගන්න.'
-];
-
-const sources = [
-  {
-    label: `Google Maps — ${ATTRACTION_FULL_NAME} listing (rating & reviews)`,
-    labelLocal: 'Google සිතියම් ලැයිස්තුගත කිරීම (ලකුණු හා විචාර)',
-    note: `විචාර · සමමුහුර්ත කළ කාලය ${REVIEW_SYNC_DATE} / ${REVIEW_SYNC_DATE_EN} · Reviews synced ${REVIEW_SYNC_DATE_EN}`,
-    extra: 'Google සිතියම් පරිශීලක විචාර වලින් සමමුහුර්තයි; ප්‍රකාශන හිමිකම් මුල් කර්තෘන්ට සහ Google සිතියමට අයත් වේ. Synced from Google Maps user reviews; copyright belongs to the original authors and Google Maps.',
-    href: MAPS_SHARE_URL
-  },
-  {
-    label: `${COUNTRY_NAME} / ${STATE_PROVINCE} Official Tourism Portal — Sri Lanka Tourism Development Authority (SLTDA)`,
-    labelLocal: 'ශ්‍රී ලංකා සංචාරක සංවර්ධන අධිකාරිය (නිල සංචාරක ද්වාරය)',
-    note: 'Official tourism authority / නිල සංචාරක අධිකාරිය',
-    extra: 'Opening hours, access and conservation notices are cross-checked against the national tourism authority.',
-    href: GOVT_TOURISM_URL
-  },
-  {
-    label: 'UNESCO World Heritage Centre — Sacred City of Anuradhapura',
-    labelLocal: 'යුනෙස්කෝ ලෝක උරුම අඩවිය — අනුරාධපුර පූජනීය නගරය',
-    note: 'World Heritage List No. 200 / ලෝක උරුම ලැයිස්තු අංක 200',
-    extra: 'Heritage status and conservation context for the sacred city that contains the Bodhi tree.',
-    href: 'https://whc.unesco.org/en/list/200'
-  },
-  {
-    label: 'Wikipedia — Jaya Sri Maha Bodhi',
-    labelLocal: 'විකිපීඩියා — ජය ශ්‍රී මහා බෝධිය',
-    note: 'Encyclopedic background / විශ්වකෝෂ පසුබිම',
-    extra: 'Historical narrative: the Bodh Gaya sapling, Sangamitta Theri and King Devanampiya Tissa.',
-    href: 'https://en.wikipedia.org/wiki/Jaya_Sri_Maha_Bodhi'
-  },
-  {
-    label: 'Wikimedia Commons — location photography',
-    labelLocal: 'Wikimedia Commons — ස්ථාන ඡායාරූප',
-    note: 'Hirushini Dematagoda (CC BY-SA 4.0) · A.Savin (Free Art License) · Sendaru Perera (CC BY-SA 4.0)',
-    extra: 'All hero and section photographs on this page are licensed media served locally from this domain.',
-    href: 'https://commons.wikimedia.org/wiki/Category:Jaya_Sri_Maha_Bodhi'
-  },
-  {
-    label: 'Open-Meteo — weather observations & forecast for Anuradhapura (CC BY 4.0)',
-    labelLocal: 'Open-Meteo — අනුරාධපුරය සඳහා කාලගුණ දත්ත (CC BY 4.0)',
-    note: 'කාලගුණ දත්ත · Weather data provider',
-    extra: 'Current conditions and the seven-day outlook are supplied by Open-Meteo under a CC BY 4.0 licence. Values are refreshed in your browser while the page is open.',
-    href: 'https://open-meteo.com/'
-  },
-  {
-    label: 'Climatological normals — Department of Meteorology, Sri Lanka & NOAA climate normals',
-    labelLocal: 'දේශගුණික සාමාන්‍යයන් — ශ්‍රී ලංකා කාලගුණ විද්‍යා දෙපාර්තමේන්තුව සහ NOAA',
-    note: '30-year climate normals / 30 වසරක දේශගුණික සාමාන්‍යයන්',
-    extra: 'The quarterly planning table is a synthesis of long-term monthly climate normals (temperature and rainfall) for the North Central Province dry zone.',
-    href: 'https://www.meteo.gov.lk/'
-  }
-];
 ---
 <!doctype html>
 <html lang="si">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{pageTitle}</title>
-  <meta name="description" content={pageDescription} />
-  <link rel="canonical" href={canonical} />
-  <meta name="robots" content="index, follow, max-image-preview:large" />
-  <meta name="author" content={`${ATTRACTION_FULL_NAME} Visitor Guide`} />
-  <meta name="geo.region" content="LK-7" />
-  <meta name="geo.placename" content={`${CITY_NAME}, ${STATE_PROVINCE}, ${COUNTRY_NAME}`} />
-  <meta name="ICBM" content={`${LATITUDE}, ${LONGITUDE}`} />
-
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content={ATTRACTION_SHORT_NAME} />
-  <meta property="og:title" content={ogTitle} />
-  <meta property="og:description" content={ogDescription} />
-  <meta property="og:image" content={heroImage} />
-  <meta property="og:image:alt" content={`${ATTRACTION_FULL_NAME} in ${CITY_NAME}`} />
-  <meta property="og:url" content={canonical} />
-  <meta property="og:locale" content="si_LK" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content={ogTitle} />
-  <meta name="twitter:description" content={ogDescription} />
-  <meta name="twitter:image" content={heroImage} />
-
-  <!-- PWA -->
-  <link rel="manifest" href="/manifest.webmanifest" />
-  <meta name="theme-color" content="#293d2d" />
-  <meta name="application-name" content={ATTRACTION_SHORT_NAME} />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-title" content={ATTRACTION_SHORT_NAME} />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="mobile-web-app-capable" content="yes" />
-
-  <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
-  <link rel="preload" as="image" href="/images/jaya-sri-maha-bodhi-hero.jpg" fetchpriority="high" />
-
-  <script type="application/ld+json" is:inline set:html={JSON.stringify(attraction)}></script>
-  <script type="application/ld+json" is:inline set:html={JSON.stringify(breadcrumb)}></script>
-  <script type="application/ld+json" is:inline set:html={JSON.stringify(faq)}></script>
-  <script type="application/ld+json" is:inline set:html={JSON.stringify(siteGraph)}></script>
-
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title}</title><meta name="description" content={description} /><link rel="canonical" href={siteUrl+'/'} />
+  <meta property="og:type" content="website" /><meta property="og:locale" content="si_LK" /><meta property="og:locale:alternate" content="en_GB" />
+  <meta property="og:title" content={title} /><meta property="og:description" content={description} /><meta property="og:url" content={siteUrl+'/'} />
+  <meta property="og:image" content={siteUrl+photos[0].src} /><meta property="og:image:alt" content={photos[0].alt} />
+  <meta name="twitter:card" content="summary_large_image" /><meta name="twitter:title" content={title} /><meta name="twitter:description" content={description} /><meta name="twitter:image" content={siteUrl+photos[0].src} /><meta name="twitter:image:alt" content={photos[0].alt} />
+  <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" /><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" /><link rel="manifest" href="/manifest.webmanifest" /><meta name="theme-color" content="#293d2d" />
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(graph)}></script>
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-HXM22WWPKP"></script>
-  <script is:inline>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-HXM22WWPKP');
-  </script>
-  <script is:inline>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js').catch(function () {});
-      });
-    }
-  </script>
+  <script is:inline>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-HXM22WWPKP');</script>
 </head>
 <body>
-  <header class="absolute inset-x-0 top-0 z-20 border-b border-white/15 bg-[#211a13]/25 backdrop-blur-md">
-    <div class="container flex items-center justify-between py-4">
-      <a href="#top" aria-label="මුල් පිටුව" class="block rounded-xl bg-[#fffaf0]/95 px-3 py-2 shadow-lg"><img src="/logo.svg" alt={`${ATTRACTION_FULL_NAME} — ${ATTRACTION_LOCAL_NAME}`} class="h-12 w-auto" /></a>
-      <nav class="hidden gap-5 text-sm font-semibold text-white md:flex"><a href="#visit">පැමිණීම</a><a href="#weather">කාලගුණය</a><a href="#plan">මාර්ග</a><a href="#facilities">පහසුකම්</a><a href="#nearby">අවට</a><a href="#reviews">විචාර</a><a href="#faq">ප්‍රශ්න</a><a href="#sources">මූලාශ්‍ර</a></nav>
+<a class="skip-link" href="#main">ප්‍රධාන අන්තර්ගතය / Skip to content</a>
+<header class="site-header"><div class="container header-inner">
+  <a href="#top" class="brand">ජය ශ්‍රී මහා බෝධිය{' '}<span lang="en">Independent visitor guide</span></a>
+  <details id="section-menu" class="section-menu"><summary>මෙනුව / Menu</summary><nav aria-label="පිටුවේ කොටස් / Page sections">{nav.map(([id,label])=><a href={'#'+id}>{label}</a>)}</nav></details>
+</div></header>
+<main id="main">
+  <section id="top" class="hero">
+    <img src={photos[0].src} alt={photos[0].alt} width="1280" height="913" fetchpriority="high" />
+    <div class="hero-shade"></div><div class="container hero-copy">
+      <p class="eyebrow">අනුරාධපුර · Anuradhapura, Sri Lanka</p>
+      <h1>ජය ශ්‍රී මහා බෝධිය{' '}<span lang="en">Jaya Sri Maha Bodhi</span></h1>
+      <p>පූජනීය වෘක්ෂයේ ඉතිහාසය දැනගෙන, ගෞරවයෙන් වන්දනාවට සූදානම් වන්න.</p>
+      <p lang="en">Understand the sacred tree’s history and plan a respectful visit. Check current access, opening times and admission before travelling.</p>
+      <div class="actions"><a class="button" href="#visit">පැමිණීමට පෙර / Before you visit</a><a class="button secondary" href={maps} target="_blank" rel="noopener noreferrer">Google Maps ↗</a></div>
+      <p class="hero-credit"><a href={photos[0].source}>Photo: {photos[0].author}</a> · <a href={photos[0].licenseUrl}>{photos[0].license}</a> · <a href="#gallery">ඡායාරූප විස්තර / Photo details</a></p>
     </div>
-  </header>
-
-  <main id="top">
-    <section class="relative min-h-[92vh] overflow-hidden bg-[#253426] text-white">
-      <img src="/images/jaya-sri-maha-bodhi-hero.jpg" alt={`${ATTRACTION_FULL_NAME} - Main view in ${CITY_NAME}, ${COUNTRY_NAME}`} class="absolute inset-0 h-full w-full object-cover" fetchpriority="high" />
-      <div class="absolute inset-0 bg-gradient-to-r from-[#18261c]/95 via-[#21311f]/75 to-[#7f5227]/20"></div>
-      <div class="container relative z-10 flex min-h-[92vh] items-end pb-20 pt-36">
-        <div class="max-w-3xl">
-          <nav aria-label="Breadcrumb" class="mb-5 flex flex-wrap items-center gap-2 text-xs font-semibold text-[#f0d695]">
-            <a href="#top" class="underline decoration-dotted">{COUNTRY_LOCAL_NAME} / {COUNTRY_NAME}</a>
-            <span aria-hidden="true">›</span>
-            <a href="#location" class="underline decoration-dotted">{STATE_PROVINCE_LOCAL}</a>
-            <span aria-hidden="true">›</span>
-            <a href="#location" class="underline decoration-dotted">{CITY_LOCAL_NAME} / {CITY_NAME}</a>
-            <span aria-hidden="true">›</span>
-            <span class="text-white">{ATTRACTION_LOCAL_NAME} / {ATTRACTION_FULL_NAME}</span>
-          </nav>
-          <p class="mb-4 text-sm font-bold tracking-[.22em] text-[#f0d695]">අනුරාධපුර · මහමෙව්නා උයන</p>
-          <h1 class="text-5xl font-black leading-[1.1] md:text-7xl">ජය ශ්‍රී<br/><span class="text-[#f0d695]">මහා බෝධිය</span><span class="mt-4 block text-2xl font-bold text-[#f0d695] md:text-3xl" lang="en">Jaya Sri Maha Bodhi (Anuradhapura)</span></h1>
-          <p class="mt-6 max-w-2xl text-lg leading-8 text-[#f5efe5]">වසර දෙදහසකට වැඩි කාලයක් වන්දනා, රැකවරණය සහ ජීවමාන සම්ප්‍රදාය එක් තැනක රැඳී ඇති අනුරාධපුරයේ අතිපූජනීය බෝධි වෘක්ෂය.</p>
-          <div class="mt-8 flex flex-wrap gap-3">
-            <a href="#visit" class="rounded-full bg-[#d19c38] px-6 py-3 font-bold text-[#271b0f]">පැමිණීම සැලසුම් කරන්න</a>
-            <a href={MAPS_SHARE_URL} target="_blank" rel="noopener noreferrer" class="rounded-full border border-white/40 bg-white/10 px-6 py-3 font-bold">Google සිතියම</a>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="about" class="section">
-      <div class="container grid gap-10 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
-        <div>
-          <p class="eyebrow">ජීවමාන උරුමය</p>
-          <h2 class="mt-3 text-4xl font-black leading-tight md:text-5xl" lang="en">About {ATTRACTION_FULL_NAME} <span class="block text-2xl font-bold text-[#7c6753] md:text-3xl" lang="si">ජය ශ්‍රී මහා බෝධිය ගැන</span></h2>
-          <div class="prose mt-6 space-y-4 text-lg">
-            <p>
-              Welcome to <strong>{ATTRACTION_FULL_NAME}</strong>, widely recognized as the central <strong>{ATTRACTION_SHORT_NAME}</strong>.
-              Located in the heart of <strong>{CITY_NAME}</strong>, <strong>{STATE_PROVINCE}</strong>, <strong>{COUNTRY_NAME}</strong>, this destination
-              serves as a primary hub for travelers visiting the region.
-            </p>
-            <p>ශ්‍රී ලංකා සංචාරක ප්‍රවර්ධන අධිකාරියේ තොරතුරු අනුව, ජය ශ්‍රී මහා බෝධිය බෝධගයාවේ පූජනීය බෝධි වෘක්ෂයේ අංකුරයකින් පැවතෙන අතර සංඝමිත්තා තෙරණිය විසින් ශ්‍රී ලංකාවට ගෙන එන ලදී. දේවානම්පියතිස්ස රජුගේ යුගයේ එය මහමෙව්නා උයනේ රෝපණය කරන ලද බව සම්ප්‍රදාය සඳහන් කරයි.</p>
-            <p>මෙය සරල “පැරණි ගසක්” ලෙස නොව දිනපතා වන්දනා කරන ජීවමාන පූජනීය ස්ථානයක් ලෙස බැලීම වැදගත්ය. නිහඬව, ගෞරවයෙන් සහ දේශීය ආචාර පිළිපදිමින් පැමිණීම අත්දැකීමේ මූලික කොටසකි.</p>
-            <p class="rounded-2xl border border-[#b88a2d]/25 bg-[#fffaf0]/80 p-4 text-base">
-              <span class="eyebrow">Entity hierarchy / භූගෝලීය අනුක්‍රමය</span>
-              <span class="mt-2 block font-bold">{ATTRACTION_FULL_NAME} → {CITY_NAME} → {STATE_PROVINCE} → {COUNTRY_NAME}</span>
-              <span class="mt-1 block">{ATTRACTION_LOCAL_NAME} → {CITY_LOCAL_NAME} → {STATE_PROVINCE_LOCAL} → {COUNTRY_LOCAL_NAME}</span>
-            </p>
-          </div>
-        </div>
-        <div class="relative">
-          <div class="absolute -inset-4 -z-10 rotate-3 rounded-[2.5rem] border border-[#b88a2d]/30"></div>
-          <img src="/images/jaya-sri-maha-bodhi-pilgrims.jpg" alt={`${NEARBY_LANDMARK_1} near ${ATTRACTION_SHORT_NAME} — pilgrims at ${ATTRACTION_FULL_NAME}, ${CITY_NAME}`} class="h-[520px] w-full rounded-[2.25rem] object-cover shadow-2xl" loading="lazy" />
-          <div class="absolute bottom-5 left-5 right-5 rounded-2xl bg-[#fffaf0]/92 p-4 text-sm text-[#49382a] backdrop-blur"><strong>ගෞරවයෙන් පැමිණෙන්න:</strong> සපත්තු හා හිස්වැසුම් ඉවත් කර, උරහිස් සහ දණ වැසෙන ඇඳුම් තෝරන්න.</div>
-        </div>
-      </div>
-    </section>
-
-    <section id="history" class="section border-y border-[#755d45]/10 bg-[#f4ead7]">
-      <div class="container grid gap-10 lg:grid-cols-[.85fr_1.15fr]">
-        <div>
-          <p class="eyebrow">ඉතිහාසය</p>
-          <h2 class="mt-3 text-4xl font-black leading-tight" lang="en">History &amp; Significance of {ATTRACTION_FULL_NAME} <span class="block text-2xl font-bold text-[#7c6753]" lang="si">ජය ශ්‍රී මහා බෝධියේ ඉතිහාසය සහ වැදගත්කම</span></h2>
-        </div>
-        <div class="prose space-y-4 text-lg">
-          <p>
-            According to the Sri Lanka Tourism Development Authority, the {ATTRACTION_SHORT_NAME} grew from a sapling of the Bodhi tree at
-            Bodh Gaya — the tree under which the Buddha attained enlightenment. The sapling was brought to Sri Lanka by
-            <strong>Sangamitta Theri</strong> and planted in the <strong>Mahamewna Gardens</strong> by <strong>King Devanampiya Tissa</strong>.
-          </p>
-          <p>
-            සම්ප්‍රදාය අනුව ක්‍රි.පූ. 3 වන සියවසේ දී සංඝමිත්තා තෙරණිය විසින් බෝධගයාවේ පූජනීය බෝධි වෘක්ෂයේ අංකුරයක් ශ්‍රී ලංකාවට වැඩම කරවූ අතර දේවානම්පියතිස්ස රජු විසින් එය මහමෙව්නා උයනේ රෝපණය කරන ලදී. රෝපණය කළ දිනයක් සහිත ලොව පැරණිතම ජීවමාන වෘක්ෂයක් ලෙස මෙය සැලකේ.
-          </p>
-          <p>
-            The tree sits inside the <strong>Sacred City of {CITY_NAME}</strong>, a UNESCO World Heritage Site, and remains an active place
-            of worship rather than a museum piece — which is why dress, silence and conduct matter as much as the sightseeing itself.
-          </p>
-          <p>
-            අනුරාධපුර පූජනීය නගරය යුනෙස්කෝ ලෝක උරුම අඩවියකි. බෝධිය අද ද දිනපතා වන්දනා කරන ජීවමාන පූජනීය ස්ථානයකි.
-          </p>
-          <p>
-            <strong>පුරාවෘත්තය හා වංශකථා:</strong> සම්ප්‍රදායට අනුව මෙම වෘක්ෂය බුදුන් වහන්සේ බුද්ධත්වයට පත් වූ බෝධගයාවේ මව් බෝධි වෘක්ෂයෙන් පැවතෙන අංකුරයකි.
-            ඉන්දියාවේ අශෝක අධිරාජයාගේ ධර්ම ප්‍රචාරය සමඟ සම්බන්ධ <strong>මිහිඳු මහරහතන් වහන්සේ</strong> මිහින්තලයේ දී දේවානම්පියතිස්ස රජු හමු වූ බවත්,
-            ඉන් අනතුරුව <strong>සංඝමිත්තා තෙරණිය</strong> බෝධි අංකුරය වැඩම කරවූ බවත් <em>මහාවංශය</em> හා <em>දීපවංශය</em> යන වංශකථාවල සඳහන් වේ.
-            මෙම සිදුවීම් වාර්තාගත ඉතිහාසයට වඩා ආගමික සම්ප්‍රදාය සහ වංශකථා මූලාශ්‍ර මත පදනම් වේ.
-          </p>
-          <p>
-            <strong>Chronicle &amp; tradition:</strong> According to the <em>Mahavamsa</em> and <em>Dipavamsa</em> chronicles, the Buddhist mission of
-            <strong>Mahinda Thera</strong> met <strong>King Devanampiya Tissa</strong> at Mihintale, after which <strong>Sangamitta Theri</strong> brought the
-            sapling to the island. These accounts are traditional and chronicle-based rather than modern documentary history, and they are the reason
-            the site is described as the oldest living tree with a recorded planting date.
-          </p>
-          <p>
-            <strong>ජීවමාන සම්ප්‍රදාය:</strong> වෘක්ෂය අද ද භික්ෂු සංඝයා හා ගිහි භක්තිකයන් විසින් දිනපතා රැකබලා ගනී. කිරි පූජා, පැන් වත් කිරීම, මල් හා පහන් පූජා වැනි
-            වතාවත් අද ද පවතී. වෙසක් හා පොසොන් පෝය දිනවල වන්දනාකරුවන්ගේ ප්‍රවාහය ඉහළ යයි.
-          </p>
-          <p>
-            <strong>ආරක්ෂණය හා විද්‍යාත්මක සටහන:</strong> වෘක්ෂය වටා ආධාරක, වැටවල් සහ නිරීක්ෂණ පද්ධති යොදා ඇති අතර මුල් ප්‍රදේශයට පිවිසීම සීමා කර ඇත.
-            නිවර්තන වෘක්ෂවල වාර්ෂික වළය පැහැදිලි නොවන බැවින් වයස තක්සේරුව වළය ගණනයෙන් නොව ලේඛනගත සම්ප්‍රදායෙන් උපුටා දක්වයි
-            (පහත “පරිසර විද්‍යාව හා වගකීම” කොටස බලන්න).
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <section id="visit" class="section grid-paper">
-      <div class="container">
-        <div class="max-w-2xl"><p class="eyebrow">පැමිණීමට පෙර</p><h2 class="mt-3 text-4xl font-black">ප්‍රායෝගික තොරතුරු</h2></div>
-        <div class="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          <article class="card rounded-3xl p-6"><span class="text-3xl">🕕</span><h3 class="mt-5 text-xl font-extrabold">විවෘත වේලාව</h3><p class="mt-2 leading-7 text-[#665444]">සාමාන්‍යයෙන් පෙ.ව. 6:15 සිට රාත්‍රී 9:00 දක්වා ලෙස ලැයිස්තුගත වේ. විශේෂ පූජා/පෝය දිනවල වෙනස්කම් විය හැක.</p></article>
-          <article class="card rounded-3xl p-6"><span class="text-3xl">🎟️</span><h3 class="mt-5 text-xl font-extrabold">ප්‍රවේශ ගාස්තුව</h3><p class="mt-2 leading-7 text-[#665444]">බෝධි පරිශ්‍රයට ප්‍රවේශය නොමිලේ ලෙස වාර්තා වේ. අවට පුරාවිද්‍යා ස්ථාන සඳහා වෙනම ටිකට් අවශ්‍ය විය හැක.</p></article>
-          <article class="card rounded-3xl p-6"><span class="text-3xl">⏳</span><h3 class="mt-5 text-xl font-extrabold">රැඳී සිටින කාලය</h3><p class="mt-2 leading-7 text-[#665444]">මිනිත්තු 30–90. වන්දනා, නිහඬව වාඩිවීම හෝ අවට පූජනීය ස්ථාන එකතු කරන්නේ නම් වැඩි කාලයක් වෙන් කරන්න.</p></article>
-          <article class="card rounded-3xl p-6"><span class="text-3xl">🌤️</span><h3 class="mt-5 text-xl font-extrabold">හොඳම වේලාව</h3><p class="mt-2 leading-7 text-[#665444]">අලුයම හෝ සවස. දවල් පාවහන් නොමැතිව ගමන් කරන පෘෂ්ඨ උණුසුම් විය හැකි අතර පෝය දිනවල ජනතාව වැඩි වේ.</p></article>
-        </div>
-      </div>
-    </section>
-
-    <section id="weather" class="section border-y border-[#755d45]/10 bg-[#f4ead7]" data-weather data-lat={LATITUDE} data-lon={LONGITUDE}>
-      <div class="container">
-        <div class="max-w-3xl">
-          <p class="eyebrow">කාලගුණය · Weather</p>
-          <h2 class="mt-3 text-4xl font-black leading-tight" lang="en">Weather &amp; 7-Day Forecast for {CITY_NAME} <span class="block text-2xl font-bold text-[#7c6753]" lang="si">අනුරාධපුරයේ වර්තමාන කාලගුණය සහ දින 7ක අනාවැකිය</span></h2>
-          <p class="mt-4 leading-8 text-[#5e4c3c]">පූජනීය පරිශ්‍රයට පිවිසෙන විට පාවහන් ඉවත් කළ යුතු බැවින් බිමේ උෂ්ණත්වය, හිරු රශ්මිය සහ හදිසි වර්ෂාව සැලසුමට සෘජුවම බලපායි. Because footwear is removed at the precinct, ground heat, sun and sudden showers matter more here than at most sites.</p>
-        </div>
-
-        <div class="mt-10 grid gap-6 lg:grid-cols-[.85fr_1.15fr]">
-          <div class="rounded-[2rem] bg-[#2f432f] p-8 text-white">
-            <p class="text-sm font-bold tracking-[.18em] text-[#e8c877]">දැන් · Right now</p>
-            <div class="mt-4 flex items-start gap-4">
-              <span class="text-6xl font-black leading-none" data-wx="temp">{formatNumber(weatherNow.temperature)}°</span>
-              <span class="text-5xl leading-none" data-wx="icon" aria-hidden="true">{weatherText.icon}</span>
-            </div>
-            <p class="mt-3 text-xl font-bold" data-wx="label">{weatherText.si}</p>
-            <p class="text-sm text-[#cfd8cb]" lang="en" data-wx="label-en">{weatherText.en}</p>
-            <p class="mt-4 rounded-xl bg-black/20 p-3 text-sm font-bold leading-6 text-[#eef0e8]" data-wx="summary">{weatherAdvice.headline.si}<span class="mt-1 block text-xs font-normal text-[#cfd8cb]" lang="en">{weatherAdvice.headline.en}</span></p>
-            <dl class="mt-6 grid grid-cols-2 gap-x-4 gap-y-4 text-sm">
-              <div><dt class="text-[#b9c6b6]">දැනෙන උෂ්ණත්වය / Feels like</dt><dd class="mt-1 text-lg font-bold" data-wx="apparent">{formatNumber(weatherNow.apparentTemperature)}°</dd><dd class="text-xs text-[#cfd8cb]" data-wx="feels-word">{feelsWord.si} · {feelsWord.en}</dd></div>
-              <div><dt class="text-[#b9c6b6]">වැසි සම්භාවිතාව / Rain chance</dt><dd class="mt-1 text-lg font-bold" data-wx="rain-chance">{todayRainChance}</dd></div>
-              <div><dt class="text-[#b9c6b6]">සුළඟ / Wind</dt><dd class="mt-1 text-lg font-bold" data-wx="wind">{windWord.si}</dd><dd class="text-xs text-[#cfd8cb]" lang="en" data-wx="wind-en">{windWord.en}</dd></div>
-              <div><dt class="text-[#b9c6b6]">හිරු රශ්මිය / UV</dt><dd class="mt-1 text-lg font-bold" data-wx="uv">{uvWord.si}</dd><dd class="text-xs text-[#cfd8cb]" lang="en" data-wx="uv-en">{uvWord.en}</dd></div>
-              <div class="col-span-2"><dt class="text-[#b9c6b6]">වාතය / Air</dt><dd class="mt-1 text-base font-bold"><span data-wx="air">{airWord.si}</span> · <span lang="en" data-wx="air-en">{airWord.en}</span></dd></div>
-            </dl>
-            <p class="mt-6 text-xs leading-6 text-[#cfd8cb]">යාවත්කාලීන කළ වේලාව · Updated <span data-wx="updated">{weatherUpdatedLabel}</span> (Asia/Colombo)</p>
-            {!weather.ok && (
-              <p class="mt-3 rounded-xl bg-black/20 p-3 text-xs leading-6 text-[#f0e6d2]">සජීවී දත්ත මේ මොහොතේ ලබා ගත නොහැක; පහත අගයන් දිගුකාලීන දේශගුණික සාමාන්‍යයන් මත පදනම් වේ. Live values are unavailable at the moment, so long-term climate normals are shown.</p>
-            )}
-          </div>
-
-          <div class="rounded-[2rem] border border-[#a78a67]/20 bg-white/70 p-8">
-            <h3 class="text-2xl font-black">මේ කාලගුණයෙන් ඔබට කුමක් කළ යුතුද? <span class="block text-base font-bold text-[#7c6753]" lang="en">What this weather means for your visit</span></h3>
-
-            <div class="mt-5">
-              <p class="text-xs font-extrabold tracking-[.16em] text-red-700">⚠️ අවදානම් දැනුම්දීම · Risk alert</p>
-              <ul class="mt-2 space-y-2" data-wx="risks">
-                {weatherAdvice.risks.map((item) => (
-                  <li class={ADVICE_CLASS.risk}>{item.icon} {item.si}<span class={ADVICE_CLASS.en} lang="en">{item.en}</span></li>
-                ))}
-              </ul>
-              <p class:list={['mt-2 rounded-2xl bg-emerald-50 p-4 text-sm font-bold leading-6 text-emerald-800', weatherAdvice.risks.length ? 'hidden' : '']} data-wx="risk-empty">✅ විශේෂ අවදානම් දැනුම්දීම් නොමැත · No weather warnings can be derived from the current data.</p>
-            </div>
-
-            <div class="mt-6 space-y-5">
-              <div>
-                <p class="text-xs font-extrabold tracking-[.16em] text-[#b88a2d]">✅ ඇඳුම් සහ ගමන් සූදානම · What to wear</p>
-                <ul class="mt-2 space-y-2" data-wx="dress">
-                  {weatherAdvice.dress.map((item) => (
-                    <li class={ADVICE_CLASS.item}>{item.icon} {item.si}<span class={ADVICE_CLASS.en} lang="en">{item.en}</span></li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <p class="text-xs font-extrabold tracking-[.16em] text-[#b88a2d]">🗺️ නැරඹීමේ සැලැස්ම · How to plan the visit</p>
-                <ul class="mt-2 space-y-2" data-wx="plan">
-                  {weatherAdvice.plan.map((item) => (
-                    <li class={ADVICE_CLASS.item}>{item.icon} {item.si}<span class={ADVICE_CLASS.en} lang="en">{item.en}</span></li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <p class="text-xs font-extrabold tracking-[.16em] text-[#b88a2d]">🎒 රැගෙන යා යුතු දෑ · What to carry</p>
-                <ul class="mt-2 space-y-2" data-wx="carry">
-                  {weatherAdvice.carry.map((item) => (
-                    <li class={ADVICE_CLASS.item}>{item.icon} {item.si}<span class={ADVICE_CLASS.en} lang="en">{item.en}</span></li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            <p class="mt-5 text-xs leading-6 text-[#7c6753]">අනාවැකි යනු සම්භාවිතාවන් වේ; පූජනීය කටයුතු සඳහා දේශීය නිවේදන ද සලකා බලන්න. Forecasts are probabilities — also follow local notices for religious events.</p>
-          </div>
-        </div>
-
-        <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-          {weatherRows.map((row) => (
-            <div class="rounded-2xl border border-[#8c7765]/20 bg-white/75 p-4 text-center" data-wx-day={row.index}>
-              <p class="text-xs font-extrabold text-[#b88a2d]">{row.isToday ? 'අද · Today' : row.weekdaySi}</p>
-              <p class="text-xs text-[#7c6753]" lang="en">{row.dateEn}</p>
-              <div class="my-3 text-3xl leading-none" data-wx-day-icon aria-hidden="true">{row.text.icon}</div>
-              <p class="text-xs text-[#6d5b4a]" data-wx-day-label>{row.text.si}</p>
-              <p class="mt-2 text-sm font-black"><span data-wx-day-max>{row.tempMax}</span>° / <span data-wx-day-min>{row.tempMin}</span>°</p>
-              <p class="mt-1 text-xs text-[#6d5b4a]">වැසි <span data-wx-day-rain>{row.rainChance}</span></p>
-              <p class="text-xs text-[#6d5b4a]">UV <span data-wx-day-uv>{row.uv}</span></p>
-            </div>
-          ))}
-        </div>
-
-        <p class="mt-5 text-xs leading-6 text-[#7c6753]">කාලගුණ මූලාශ්‍රය · Weather data: <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" class="underline decoration-dotted">Open-Meteo</a> (CC BY 4.0). පිටුව විවෘතව ඇති අතරතුර අගයන් යාවත්කාලීන වේ. Values refresh while this page stays open.</p>
-      </div>
-
-      <script>
-        import {
-          ADVICE_CLASS,
-          buildWeatherAdvice,
-          buildWeatherApiUrl,
-          feelsLabel,
-          formatNumber,
-          humidityLabel,
-          normaliseWeatherPayload,
-          uvLabel,
-          weatherCodeToText,
-          windLabel
-        } from '../lib/weather-shared';
-
-        const root = document.querySelector<HTMLElement>('[data-weather]');
-
-        if (root) {
-          const latitude = Number(root.dataset.lat);
-          const longitude = Number(root.dataset.lon);
-          const pad = (value: number) => String(value).padStart(2, '0');
-
-          const stamp = (iso: string) => {
-            const date = new Date(iso);
-            if (Number.isNaN(date.getTime())) return '—';
-            const colombo = new Date(date.getTime() + 5.5 * 60 * 60 * 1000);
-            return `${colombo.getUTCFullYear()}-${pad(colombo.getUTCMonth() + 1)}-${pad(colombo.getUTCDate())} ${pad(colombo.getUTCHours())}:${pad(colombo.getUTCMinutes())}`;
-          };
-
-          const setText = (key: string, value: string) => {
-            root.querySelectorAll<HTMLElement>(`[data-wx="${key}"]`).forEach((node) => {
-              node.textContent = value;
-            });
-          };
-
-          const renderAdvice = (key: string, items: { icon: string; si: string; en: string }[], className: string) => {
-            const host = root.querySelector<HTMLElement>(`[data-wx="${key}"]`);
-            if (!host) return;
-            host.innerHTML = '';
-            items.forEach((item) => {
-              const node = document.createElement('li');
-              node.className = className;
-              node.textContent = `${item.icon} ${item.si}`;
-              const english = document.createElement('span');
-              english.className = ADVICE_CLASS.en;
-              english.setAttribute('lang', 'en');
-              english.textContent = item.en;
-              node.appendChild(english);
-              host.appendChild(node);
-            });
-          };
-
-          const render = (snapshot: ReturnType<typeof normaliseWeatherPayload>) => {
-            if (!snapshot) return;
-            const now = snapshot.now;
-            const today = snapshot.days[0] ?? null;
-            const text = weatherCodeToText(now.weatherCode);
-            const windWord = windLabel(now.windSpeed);
-            const uvWord = uvLabel(today?.uvIndexMax ?? now.uvIndex);
-            const airWord = humidityLabel(now.humidity);
-            const feelsWord = feelsLabel(now);
-
-            setText('temp', `${formatNumber(now.temperature)}°`);
-            setText('icon', text.icon);
-            setText('label', text.si);
-            setText('label-en', text.en);
-            setText('apparent', `${formatNumber(now.apparentTemperature)}°`);
-            setText('feels-word', `${feelsWord.si} · ${feelsWord.en}`);
-            setText('rain-chance', today?.precipitationProbability === null || today?.precipitationProbability === undefined ? '—' : `${Math.round(today.precipitationProbability)}%`);
-            setText('wind', windWord.si);
-            setText('wind-en', windWord.en);
-            setText('uv', uvWord.si);
-            setText('uv-en', uvWord.en);
-            setText('air', airWord.si);
-            setText('air-en', airWord.en);
-            setText('updated', stamp(now.time));
-
-            const advice = buildWeatherAdvice({ ...snapshot, days: snapshot.days.slice(0, 7) });
-            const summary = root.querySelector<HTMLElement>('[data-wx="summary"]');
-            if (summary) {
-              summary.textContent = advice.headline.si;
-              const english = document.createElement('span');
-              english.className = 'mt-1 block text-xs font-normal text-[#cfd8cb]';
-              english.setAttribute('lang', 'en');
-              english.textContent = advice.headline.en;
-              summary.appendChild(english);
-            }
-            renderAdvice('risks', advice.risks, ADVICE_CLASS.risk);
-            renderAdvice('dress', advice.dress, ADVICE_CLASS.item);
-            renderAdvice('plan', advice.plan, ADVICE_CLASS.item);
-            renderAdvice('carry', advice.carry, ADVICE_CLASS.item);
-            const riskEmpty = root.querySelector<HTMLElement>('[data-wx="risk-empty"]');
-            if (riskEmpty) riskEmpty.classList.toggle('hidden', advice.risks.length > 0);
-
-            snapshot.days.slice(0, 7).forEach((day, index) => {
-              const card = root.querySelector<HTMLElement>(`[data-wx-day="${index}"]`);
-              if (!card) return;
-              const dayText = weatherCodeToText(day.weatherCode);
-              const pick = (key: string) => card.querySelector<HTMLElement>(`[data-wx-day-${key}]`);
-              const icon = pick('icon');
-              if (icon) icon.textContent = dayText.icon;
-              const label = pick('label');
-              if (label) label.textContent = dayText.si;
-              const max = pick('max');
-              if (max) max.textContent = formatNumber(day.tempMax);
-              const min = pick('min');
-              if (min) min.textContent = formatNumber(day.tempMin);
-              const rain = pick('rain');
-              if (rain) rain.textContent = day.precipitationProbability === null ? '—' : `${Math.round(day.precipitationProbability)}%`;
-              const uv = pick('uv');
-              if (uv) uv.textContent = formatNumber(day.uvIndexMax);
-            });
-
-          };
-
-          const refresh = async () => {
-            if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
-            try {
-              const response = await fetch(buildWeatherApiUrl(latitude, longitude), { headers: { accept: 'application/json' } });
-              if (!response.ok) return;
-              render(normaliseWeatherPayload(await response.json(), new Date().toISOString()));
-            } catch {
-              /* keep the values already rendered on the page */
-            }
-          };
-
-          const start = () => {
-            refresh();
-            window.setInterval(refresh, 15 * 60 * 1000);
-            document.addEventListener('visibilitychange', () => {
-              if (document.visibilityState === 'visible') refresh();
-            });
-          };
-
-          if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', start, { once: true });
-          } else {
-            start();
-          }
-        }
-      </script>
-    </section>
-
-    <section class="section">
-      <div class="container grid gap-10 lg:grid-cols-2">
-        <div class="rounded-[2rem] bg-[#2f432f] p-8 text-white md:p-10">
-          <p class="text-sm font-bold tracking-[.18em] text-[#e8c877]">විස්තරාත්මක ගමනාගමනය</p>
-          <h2 class="mt-3 text-3xl font-black">අනුරාධපුරයට හා පූජනීය කලාපයට ළඟා වීම</h2>
-          <div class="mt-6 space-y-5 leading-7 text-[#eef0e8]"><p><strong>දුම්රියෙන්:</strong> කොළඹ සිට අනුරාධපුර දුම්රිය ස්ථානයට පැමිණ, එතැන් සිට ටුක්-ටුක්/ටැක්සි හෝ දේශීය ප්‍රවාහනයෙන් පූජනීය නගර කලාපයට යා හැක.</p><p><strong>බස් රථයෙන්:</strong> දිවයිනේ ප්‍රධාන නගරවලින් අනුරාධපුර ප්‍රධාන බස් නැවතුමට සේවා ඇත. අවසාන කොටස සඳහා ටුක්-ටුක් එකක් ප්‍රායෝගිකය.</p><p><strong>පෞද්ගලික වාහනයෙන්:</strong> Sacred City / Sri Maha Bodhi යන සලකුණු අනුගමනය කරන්න. ආගමික කලාපයේ ගමනාගමන සීමා හා වන්දනාකරුවන්ට ප්‍රමුඛතාව සලකා බලන්න.</p></div>
-        </div>
-        <div class="rounded-[2rem] border border-[#a78a67]/20 bg-white/70 p-8 md:p-10">
-          <p class="eyebrow">රථගාල්</p><h2 class="mt-3 text-3xl font-black">සපත්තු ගබඩා සහ රථගාල් සැලසුම</h2><p class="mt-6 leading-8 text-[#5e4c3c]">පූජනීය නගරයේ ප්‍රවේශ මාර්ග අසල රථගාල්/නවතා තැබීමේ ස්ථාන භාවිතා කළ හැකි නමුත් පෝය දිනවල ඉඩ සීමිත විය හැක. නිශ්චිත ගාස්තුවක් හෝ නොමිලේ බවක් පෙරනිමි ලෙස නොගන්න. වාහනයෙන් වටිනා ද්‍රව්‍ය නොතබන්න; පූජනීය පරිශ්‍රයට පෙර සපත්තු තැබීම සඳහා දේශීය පහසුකම් භාවිතා කරන්න.</p>
-          <div class="mt-7 rounded-2xl bg-[#f7eedc] p-5 text-sm leading-6 text-[#614d39]">උණුසුම් දිනයක සපත්තු ඉවත් කළ පසු භූමිය උණුසුම් විය හැක. පිරිසිදු මේස් යුගලයක් ගෙන යාම ප්‍රයෝජනවත් විය හැක.</div>
-        </div>
-      </div>
-    </section>
-
-    <section id="location" class="section bg-[#1f2d22] text-white">
-      <div class="container">
-        <div class="grid gap-8 lg:grid-cols-[.8fr_1.2fr] lg:items-end"><div><p class="text-sm font-bold tracking-[.18em] text-[#e7c879]">සිතියම</p><h2 class="mt-3 text-4xl font-black" lang="en">Location &amp; How to Visit {ATTRACTION_SHORT_NAME} in {CITY_NAME} <span class="block text-2xl font-bold text-[#cfd8cb]" lang="si">{PLUS_CODE} — ස්ථානය සහ පැමිණීම</span></h2><p class="mt-4 leading-7 text-[#d7dfd4]">ඛණ්ඩාංක: {LATITUDE}, {LONGITUDE}. Postal code {POSTAL_CODE}. Google සිතියම් අතුරුමුහුණත සිංහල භාෂාවට සකසා ඇත.</p></div><a href={MAPS_SHARE_URL} target="_blank" rel="noopener noreferrer" class="justify-self-start rounded-full border border-white/25 px-5 py-3 font-bold lg:justify-self-end">සම්පූර්ණ සිතියම විවෘත කරන්න ↗</a></div>
-        <div class="mt-8 overflow-hidden rounded-[2rem] border border-white/15 bg-white/5"><iframe title={`${ATTRACTION_FULL_NAME} Google Map — ${CITY_NAME}`} src={MAPS_EMBED_SRC} width="100%" height="520" style="border:0" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen=""></iframe></div>
-        <p class="mt-6 text-sm leading-7 text-[#cfd8cb]">
-          For official updates and regional tourism information, visit
-          <a href={GOVT_TOURISM_URL} target="_blank" rel="noopener noreferrer" class="font-bold text-[#f0d695] underline decoration-dotted">{COUNTRY_NAME} / {STATE_PROVINCE} Official Tourism Portal</a>.
-        </p>
-      </div>
-    </section>
-
-    <section id="nearby" class="section">
-      <div class="container">
-        <p class="eyebrow">අවට පූජනීය ස්ථාන</p><h2 class="mt-3 max-w-3xl text-4xl font-black" lang="en">Landmarks &amp; Attractions Around {ATTRACTION_SHORT_NAME} <span class="block text-2xl font-bold text-[#7c6753]" lang="si">පා ගමනෙන් හෝ කෙටි රථ ගමනකින් එකතු කළ හැකි ස්ථාන</span></h2>
-        <p class="mt-5 max-w-3xl leading-8 text-[#5e4c3c]">
-          When visiting <strong>{ATTRACTION_FULL_NAME}</strong>, visitors can easily explore surrounding historical landmarks and points of interest, including <strong>{NEARBY_LANDMARK_1}</strong> and <strong>{NEARBY_LANDMARK_2}</strong>.
-        </p>
-        <div class="mt-10 grid gap-5 md:grid-cols-3">
-          <article class="card rounded-3xl p-7"><div class="text-4xl">◯</div><h3 class="mt-5 text-2xl font-black">රුවන්වැලි මහා සෑය</h3><p class="mt-3 leading-7 text-[#655242]">අනුරාධපුරයේ අතිශය පූජනීය මහා ස්තූප අතර ප්‍රමුඛ ස්ථානයක්. ශ්‍රී මහා බෝධිය සමඟ එකම වන්දනා මාර්ගයකට ගැලපේ.</p></article>
-          <article class="card rounded-3xl p-7"><div class="text-4xl">▥</div><h3 class="mt-5 text-2xl font-black">ලෝවාමහාපාය</h3><p class="mt-3 leading-7 text-[#655242]">ශ්‍රී මහා බෝධිය හා රුවන්වැලි සෑය අතර පිහිටි පුරාණ ආරාමික ගොඩනැගිල්ලක ශිලා ස්තම්භ පේළි දැකිය හැකි ස්ථානය.</p></article>
-          <article class="card rounded-3xl p-7"><div class="text-4xl">◉</div><h3 class="mt-5 text-2xl font-black">ථූපාරාමය</h3><p class="mt-3 leading-7 text-[#655242]">ශ්‍රී ලංකාවේ මුල්කාලීන බෞද්ධ ස්තූප උරුමය සමඟ සම්බන්ධ, අනුරාධපුර පූජනීය නගරයේ වැදගත් ස්ථානයක්.</p></article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section border-y border-[#785e43]/10 bg-[#f3e7d1]">
-      <div class="container grid gap-10 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
-        <img src="/images/jaya-sri-maha-bodhiya-flags.jpg" alt={`Buddhist flags and the ${ATTRACTION_FULL_NAME} precinct in ${CITY_NAME}, ${COUNTRY_NAME}`} class="h-[540px] w-full rounded-[2rem] object-cover shadow-xl" loading="lazy" />
-        <div><p class="eyebrow">ආහාර වර්ග · Dining types</p><h2 class="mt-3 text-4xl font-black">වන්දනාවෙන් පසු ආහාර: වර්ග අනුව තෝරා ගැනීම <span class="block text-2xl font-bold text-[#7c6753]" lang="en">Choosing a place to eat by type, not by name</span></h2><div class="mt-7 space-y-4">
-          <div class="rounded-2xl bg-white/75 p-5"><h3 class="font-extrabold">බත් සහ කරි ආපනශාලා · Rice &amp; curry houses</h3><p class="mt-2 text-sm leading-6 text-[#655242]">ව්‍යංජන කිහිපයක් සමඟ බත් පිළිගන්වන දහවල් ආහාර ස්ථාන. විශාල කණ්ඩායම්වලට සහ පවුල්වලට ප්‍රායෝගිකය.</p></div>
-          <div class="rounded-2xl bg-white/75 p-5"><h3 class="font-extrabold">නිර්මාංශ හා සරල ආහාර · Vegetarian &amp; light meals</h3><p class="mt-2 text-sm leading-6 text-[#655242]">පෝය දිනවල සහ ආගමික වතාවත් පවත්වන අය සඳහා නිර්මාංශ විකල්ප වඩාත් පොදු වේ. සරල එළවළු හා පලතුරු ආහාර පහසුවෙන් සොයා ගත හැක.</p></div>
-          <div class="rounded-2xl bg-white/75 p-5"><h3 class="font-extrabold">තේ කඩ සහ කෙටි ආහාර · Tea shops &amp; short eats</h3><p class="mt-2 text-sm leading-6 text-[#655242]">උදෑසන සහ සන්ධ්‍යාවේ විවෘතව පවතින කුඩා ස්ථාන. තේ, පළතුරු යුෂ සහ කෙටි ආහාර සඳහා වේගවත් විකල්පයකි.</p></div>
-          <div class="rounded-2xl bg-white/75 p-5"><h3 class="font-extrabold">ජලය සහ සිසිල් පාන · Water &amp; cold drinks</h3><p class="mt-2 text-sm leading-6 text-[#655242]">සිල්ලර වෙළඳසැල්වලින් බෝතල් කළ පානීය ජලය මිලදී ගත හැක. උණුසුම් දිනවල ජලය නැවත පිරවීම අත්‍යවශ්‍යය.</p></div>
-        </div><p class="mt-5 text-xs leading-5 text-[#725d49]">මෙම පිටුවේ කිසිදු ව්‍යාපාරික නමක් හෝ නිර්දේශයක් නොමැත; විවෘත වේලාවන්, මෙනු සහ මිල ගණන් වෙනස් විය හැකි බැවින් පැමිණීමට පෙර නවතම තොරතුරු පරීක්ෂා කරන්න. <span lang="en" class="block">This guide recommends categories, not individual businesses; hours, menus and prices change.</span></p></div>
-      </div>
-    </section>
-
-    <section id="seasons" class="section border-y border-[#785e43]/10 bg-[#f4ead7]">
-      <div class="container">
-        <div class="max-w-3xl">
-          <p class="eyebrow">සෘතු සැලසුම · Seasonal planning</p>
-          <h2 class="mt-3 text-4xl font-black leading-tight">කාර්තුමය සංචාර උපාය මාර්ගය <span class="block text-2xl font-bold text-[#7c6753]" lang="en">Quarterly Visit Strategy for {CITY_NAME}</span></h2>
-          <p class="mt-4 leading-8 text-[#5e4c3c]">
-            දේශගුණය, ජනතා ප්‍රවාහය, ජල මට්ටම් සහ වන සතුන්ගේ හැසිරීම එක්ව සලකා බැලූ සමස්ත විශ්ලේෂණයක්.
-            A combined reading of climate, crowd levels, water levels and wildlife activity for each quarter of the year.
-          </p>
-        </div>
-
-        <div class="mt-8 overflow-x-auto rounded-[2rem] border border-[#8c7765]/20 bg-white/70">
-          <table class="w-full min-w-[920px] border-collapse text-left text-sm">
-            <thead class="bg-[#2f432f] text-white">
-              <tr>
-                <th class="p-4 font-bold">කාර්තුව<br/><span lang="en" class="font-normal">Quarter</span></th>
-                <th class="p-4 font-bold">මාස<br/><span lang="en" class="font-normal">Months</span></th>
-                <th class="p-4 font-bold">දේශගුණය<br/><span lang="en" class="font-normal">Climate</span></th>
-                <th class="p-4 font-bold">ජනතාව<br/><span lang="en" class="font-normal">Crowds</span></th>
-                <th class="p-4 font-bold">පරිසරය<br/><span lang="en" class="font-normal">Nature</span></th>
-                <th class="p-4 font-bold">උපදෙස්<br/><span lang="en" class="font-normal">Tips</span></th>
-                <th class="p-4 font-bold">සුදුසුකම<br/><span lang="en" class="font-normal">Verdict</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {seasonQuarters.map((quarter) => (
-                <tr class="border-t border-[#8c7765]/20 align-top">
-                  <td class="p-4 text-lg font-black text-[#2f432f]">{quarter.quarter}</td>
-                  <td class="p-4"><span class="block font-bold">{quarter.monthsSi}</span><span class="block text-xs text-[#7c6753]" lang="en">{quarter.monthsEn}</span></td>
-                  <td class="p-4 leading-6">{quarter.climateSi}<span class="mt-1 block text-xs text-[#7c6753]" lang="en">{quarter.climateEn}</span></td>
-                  <td class="p-4 leading-6">{quarter.crowdSi}<span class="mt-1 block text-xs text-[#7c6753]" lang="en">{quarter.crowdEn}</span></td>
-                  <td class="p-4 leading-6">{quarter.natureSi}<span class="mt-1 block text-xs text-[#7c6753]" lang="en">{quarter.natureEn}</span></td>
-                  <td class="p-4 leading-6">{quarter.tipSi}<span class="mt-1 block text-xs text-[#7c6753]" lang="en">{quarter.tipEn}</span></td>
-                  <td class="p-4"><span class="rounded-full bg-[#2f432f] px-3 py-1 text-xs font-bold text-white">{quarter.verdictSi}</span><span class="mt-2 block text-xs text-[#7c6753]" lang="en">{quarter.verdictEn}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p class="mt-4 text-xs leading-6 text-[#7c6753]">
-          පදනම: උතුරු මැද පළාතේ වියළි කලාපය සඳහා වූ දිගුකාලීන මාසික දේශගුණික සාමාන්‍යයන් (උෂ්ණත්වය හා වර්ෂාපතනය) — ශ්‍රී ලංකා කාලගුණ විද්‍යා දෙපාර්තමේන්තුව සහ NOAA 30 වසරක දේශගුණික සාමාන්‍යයන්.
-          <span lang="en" class="block">Basis: long-term monthly climate normals (temperature and rainfall) for the North Central Province dry zone — Department of Meteorology, Sri Lanka and NOAA 30-year climate normals. Values are planning guidance, not a daily forecast.</span>
-        </p>
-      </div>
-    </section>
-
-    <section id="plan" class="section">
-      <div class="container">
-        <div class="max-w-3xl">
-          <p class="eyebrow">ගමන් සැලසුම් · Itineraries</p>
-          <h2 class="mt-3 text-4xl font-black leading-tight">සංචාරක කණ්ඩායම අනුව සැලසුම් <span class="block text-2xl font-bold text-[#7c6753]" lang="en">Itineraries by Traveller Type</span></h2>
-          <p class="mt-4 leading-8 text-[#5e4c3c]">ත්‍රිත්ව මාර්ග තුනක්: පවුල් / ඡායාරූප සහ ස්වභාවය / අඩු ශ්‍රම සහ ප්‍රවේශ්‍යතාව. Three routes designed around who is travelling, not around a fixed schedule.</p>
-        </div>
-
-        <div class="mt-10 grid gap-5 lg:grid-cols-3">
-          {audiencePlans.map((plan) => (
-            <article class="card rounded-3xl p-7">
-              <div class="text-4xl">{plan.icon}</div>
-              <h3 class="mt-4 text-2xl font-black">{plan.titleSi}<span class="block text-base font-bold text-[#7c6753]" lang="en">{plan.titleEn}</span></h3>
-              <p class="mt-3 text-sm font-bold text-[#5e4c3c]">කාලය · Duration: {plan.durationSi} <span lang="en">({plan.durationEn})</span></p>
-              <p class="text-sm text-[#5e4c3c]">රිද්මය · Pace: {plan.paceSi} <span lang="en">({plan.paceEn})</span></p>
-              <ol class="mt-4 list-decimal space-y-2 pl-5 text-sm leading-6 text-[#655242]">
-                {plan.steps.map((step) => (<li>{step}</li>))}
-              </ol>
-              <ul class="mt-3 list-disc space-y-1 pl-5 text-xs leading-5 text-[#7c6753]" lang="en">
-                {plan.stepsEn.map((step) => (<li>{step}</li>))}
-              </ul>
-              <p class="mt-4 rounded-2xl bg-[#f7eedc] p-4 text-xs leading-6 text-[#6d5b4a]"><strong>සැලකිල්ල · Caution:</strong> {plan.cautionSi}<span class="mt-1 block" lang="en">{plan.cautionEn}</span></p>
-            </article>
-          ))}
-        </div>
-
-        <div class="mt-14 grid gap-6 lg:grid-cols-2">
-          <div class="rounded-[2rem] border border-[#a78a67]/20 bg-white/70 p-8">
-            <p class="eyebrow">අර්ධ දින · Half day</p>
-            <h3 class="mt-3 text-2xl font-black">අර්ධ දින මාර්ගය (පැය 3.5–4) <span class="block text-base font-bold text-[#7c6753]" lang="en">Recommended half-day route</span></h3>
-            <ol class="mt-6 space-y-4">
-              {routeHalfDay.map((stop) => (
-                <li class="flex gap-4">
-                  <span class="w-14 shrink-0 text-sm font-black text-[#b88a2d]">{stop.time}</span>
-                  <div>
-                    <p class="font-bold leading-6">{stop.titleSi}</p>
-                    <p class="text-xs font-semibold text-[#7c6753]" lang="en">{stop.titleEn}</p>
-                    <p class="mt-1 text-xs leading-5 text-[#6d5b4a]">{stop.noteSi}</p>
-                    <p class="text-xs leading-5 text-[#8a7a68]" lang="en">{stop.noteEn}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-          <div class="rounded-[2rem] bg-[#2f432f] p-8 text-white">
-            <p class="text-sm font-bold tracking-[.18em] text-[#e8c877]">සම්පූර්ණ දින · Full day</p>
-            <h3 class="mt-3 text-2xl font-black">සම්පූර්ණ දින මාර්ගය (පැය 7–8) <span class="block text-base font-bold text-[#cfd8cb]" lang="en">Recommended full-day route</span></h3>
-            <ol class="mt-6 space-y-4">
-              {routeFullDay.map((stop) => (
-                <li class="flex gap-4">
-                  <span class="w-14 shrink-0 text-sm font-black text-[#e8c877]">{stop.time}</span>
-                  <div>
-                    <p class="font-bold leading-6">{stop.titleSi}</p>
-                    <p class="text-xs font-semibold text-[#cfd8cb]" lang="en">{stop.titleEn}</p>
-                    <p class="mt-1 text-xs leading-5 text-[#dbe3d8]">{stop.noteSi}</p>
-                    <p class="text-xs leading-5 text-[#b9c6b6]" lang="en">{stop.noteEn}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-            <p class="mt-6 rounded-2xl bg-black/20 p-4 text-xs leading-6 text-[#eef0e8]">දහවල් උණුසුම වැඩි කාලය විවේකයට වෙන් කරන්න; සෑම විටම ජලය රැගෙන යන්න. Keep the hottest hours for rest and always carry water.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="facilities" class="section border-y border-[#785e43]/10 bg-[#f7eedc]">
-      <div class="container">
-        <div class="max-w-3xl">
-          <p class="eyebrow">පහසුකම් · Visitor services</p>
-          <h2 class="mt-3 text-4xl font-black leading-tight">අමුත්තන්ගේ සේවා සහ අවට පහසුකම් <span class="block text-2xl font-bold text-[#7c6753]" lang="en">Visitor Services &amp; Nearby Facilities (by type)</span></h2>
-          <p class="mt-4 leading-8 text-[#5e4c3c]">
-            මෙම ලැයිස්තුව වර්ග අනුව පමණි — මෙහි කිසිදු වෙළඳ නාමයක් හෝ නිර්දේශයක් අඩංගු නොවේ.
-            Listed by category only: this guide does not promote or rank individual businesses.
-          </p>
-        </div>
-        <div class="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {facilityGroups.map((group) => (
-            <article class="card rounded-3xl p-7">
-              <div class="text-3xl">{group.icon}</div>
-              <h3 class="mt-4 text-xl font-black">{group.titleSi}<span class="block text-sm font-bold text-[#7c6753]" lang="en">{group.titleEn}</span></h3>
-              <ul class="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-[#655242]">
-                {group.items.map((item) => (<li>{item}</li>))}
-              </ul>
-              <ul class="mt-3 list-disc space-y-1 pl-5 text-xs leading-5 text-[#7c6753]" lang="en">
-                {group.itemsEn.map((item) => (<li>{item}</li>))}
-              </ul>
-            </article>
-          ))}
-        </div>
-        <p class="mt-6 text-xs leading-6 text-[#7c6753]">පහසුකම් ලබා ගත හැකි බව සෘතුව, පෝය දින සහ දේශීය සිදුවීම් අනුව වෙනස් විය හැක. Availability varies with season, Poya days and local events.</p>
-      </div>
-    </section>
-
-    <section id="stewardship" class="section">
-      <div class="container grid gap-10 lg:grid-cols-2">
-        <div>
-          <p class="eyebrow">විද්‍යාව සහ පරිසරය · Science &amp; ecology</p>
-          <h2 class="mt-3 text-4xl font-black leading-tight">බෝධි වෘක්ෂය සහ වියළි කලාප පරිසරය <span class="block text-2xl font-bold text-[#7c6753]" lang="en">The Bodhi Tree &amp; the Dry-Zone Landscape</span></h2>
-          <div class="mt-6 space-y-5">
-            {scienceNotes.map((note) => (
-              <div class="rounded-2xl border border-[#8c7765]/20 bg-white/70 p-6">
-                <h3 class="text-lg font-black">{note.titleSi}<span class="block text-sm font-bold text-[#7c6753]" lang="en">{note.titleEn}</span></h3>
-                <p class="mt-2 text-sm leading-7 text-[#655242]">{note.bodySi}</p>
-                <p class="mt-2 text-xs leading-6 text-[#7c6753]" lang="en">{note.bodyEn}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div>
-          <p class="eyebrow">අමුත්තන්ගේ වගකීම · Responsibility</p>
-          <h2 class="mt-3 text-4xl font-black leading-tight">වගකීම් සහිත සංචාරය <span class="block text-2xl font-bold text-[#7c6753]" lang="en">Responsible Visiting &amp; Stewardship</span></h2>
-          <ul class="mt-6 space-y-3">
-            {visitorResponsibilities.map((item) => (
-              <li class="rounded-2xl bg-[#f7eedc] p-4 text-sm leading-7 text-[#5e4c3c]">{item}</li>
-            ))}
-          </ul>
-          <div class="mt-6 rounded-2xl bg-[#2f432f] p-6 text-sm leading-7 text-white">
-            <p class="font-bold text-[#e8c877]">ඇයි මෙය වැදගත් · Why this matters</p>
-            <p class="mt-2 text-[#eef0e8]">මෙම ස්ථානය යුනෙස්කෝ ලෝක උරුම නගරයක කොටසක් වන අතර දහස් ගණනක් වන්දනාකරුවන්ගේ දෛනික ආගමික ජීවිතයේ කොටසකි. සංචාරකයාගේ හැසිරීම සංරක්ෂණයට හා පූජනීයත්වයට සෘජුවම බලපායි.</p>
-            <p class="mt-2 text-xs leading-6 text-[#cfd8cb]" lang="en">The site forms part of a UNESCO World Heritage city and of daily religious life for thousands of pilgrims. Visitor behaviour directly affects both conservation and sanctity.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="reviews" class="section">
-      <div class="container max-w-4xl">
-        <p class="eyebrow">Google Maps විචාර</p>
-        <h2 class="mt-3 text-4xl font-black">ලකුණු සහ විචාර <span class="block text-2xl font-bold text-[#7c6753]" lang="en">Ratings &amp; Reviews from Google Maps Users</span></h2>
-        <div class="mt-8 rounded-[2rem] border border-[#8c7765]/20 bg-white/70 p-7 md:p-9">
-          <div class="flex flex-wrap items-center gap-6">
-            <div class="text-6xl font-black leading-none text-[#2f432f]">{RATING_VALUE}</div>
-            <div>
-              <div class="relative inline-block text-3xl leading-none" role="img" aria-label={`Google Maps හි සාමාන්‍ය ලකුණු ${RATING_VALUE} / ${RATING_BEST}`}>
-                <span class="text-[#d8cdb8]">★★★★★</span>
-                <span class="absolute inset-0 overflow-hidden whitespace-nowrap text-[#d19c38]" style={`width:${STAR_WIDTH}`} aria-hidden="true">★★★★★</span>
-              </div>
-              <p class="mt-2 text-sm font-bold text-[#5e4c3c]">{REVIEW_COUNT} Google Maps විචාර · {RATING_VALUE}/{RATING_BEST}</p>
-            </div>
-          </div>
-          <p class="mt-6 text-lg font-extrabold">Google සිතියම් පරිශීලක විචාර වලින්</p>
-          <p class="mt-1 text-sm leading-6 text-[#6d5b4a]">
-            <a href={MAPS_SHARE_URL} target="_blank" rel="noopener noreferrer" class="font-bold underline decoration-dotted">Google සිතියමේ සියලුම විචාර බලන්න ↗</a>
-          </p>
-          <p class="mt-3 text-xs leading-6 text-[#7c6753]">
-            ලකුණු සහ විචාර සංඛ්‍යාව Google සිතියම් (Google Maps) පරිශීලක විචාර වලින් සමමුහුර්ත කර ඇත · {REVIEW_SYNC_DATE} ·
-            <a href={MAPS_SHARE_URL} target="_blank" rel="noopener noreferrer" class="underline decoration-dotted">සියලුම විචාර Google සිතියමේ බලන්න ↗</a>
-            <span class="block" lang="en">Rating and review count synced from Google Maps user reviews · {REVIEW_SYNC_DATE_EN} · View all reviews on Google Maps↗</span>
-          </p>
-          <p class="mt-4 rounded-2xl bg-[#f7eedc] p-4 text-xs leading-6 text-[#6d5b4a]">
-            Google සිතියම් පරිශීලක විචාර වලින් සමමුහුර්තයි, සමමුහුර්ත කළ කාලය {REVIEW_SYNC_DATE}; ප්‍රකාශන හිමිකම් මුල් කර්තෘන්ට සහ Google සිතියමට අයත් වේ.
-            <span class="block" lang="en">Synced from Google Maps user reviews, synced {REVIEW_SYNC_DATE_EN}; copyright belongs to the original authors and Google Maps.</span>
-          </p>
-          <a href={MAPS_SHARE_URL} target="_blank" rel="noopener noreferrer" class="mt-6 inline-block rounded-full bg-[#2f432f] px-6 py-3 font-bold text-white">Google සිතියමේ සියලුම විචාර බලන්න ↗</a>
-        </div>
-      </div>
-    </section>
-
-    <section id="faq" class="section border-y border-[#785e43]/10 bg-[#f7eedc]">
-      <div class="container max-w-4xl"><p class="eyebrow">නිතර අසන ප්‍රශ්න</p><h2 class="mt-3 text-4xl font-black">පැමිණීමට පෙර දැනගත යුතු දේ <span class="block text-2xl font-bold text-[#7c6753]" lang="en">Frequently Asked Questions about {ATTRACTION_SHORT_NAME}</span></h2><div class="mt-8 divide-y divide-[#8c7765]/20 rounded-[2rem] border border-[#8c7765]/20 bg-white/70 px-6 md:px-8">
-        {faqItems.map((item, index) => (
-          <details class="group py-6" open={index === 0}>
-            <summary class="cursor-pointer list-none text-lg font-extrabold">{item.q}</summary>
-            <p class="mt-3 leading-7 text-[#655242]">{item.a}</p>
-          </details>
-        ))}
-      </div></div>
-    </section>
-
-    <section id="sources" class="section">
-      <div class="container max-w-4xl">
-        <p class="eyebrow">Sources &amp; Attribution</p>
-        <h2 class="mt-3 text-4xl font-black">තොරතුරු මූලාශ්‍ර <span class="block text-2xl font-bold text-[#7c6753]" lang="en">Where this information comes from</span></h2>
-        <ul class="mt-8 space-y-4">
-          {sources.map((item) => (
-            <li class="rounded-2xl border border-[#8c7765]/20 bg-white/70 p-6">
-              <a href={item.href} target="_blank" rel="noopener noreferrer" class="text-lg font-extrabold underline decoration-dotted">{item.label}</a>
-              <p class="mt-1 text-sm text-[#6d5b4a]">{item.labelLocal}</p>
-              <p class="mt-3 text-sm font-bold text-[#b88a2d]">{item.note}</p>
-              <p class="mt-2 text-xs leading-6 text-[#6d5b4a]">{item.extra}</p>
-            </li>
-          ))}
-        </ul>
-        <p class="mt-6 text-xs leading-6 text-[#7c6753]">
-          මෙම පිටුව ස්වාධීන සංචාරක මාර්ගෝපදේශයකි. This is an independent visitor guide and is not an official website of the temple or of Google.
-        </p>
-      </div>
-    </section>
-
-    <section class="pb-16">
-      <div class="container rounded-[2rem] border border-[#9c815f]/20 bg-[#fffaf0] p-6 text-xs leading-6 text-[#6d5b4a]">
-        <strong>ඡායාරූප ණය:</strong> Wikimedia Commons හි Hirushini Dematagoda (CC BY-SA 4.0), A.Savin (Free Art License) සහ Sendaru Perera (CC BY-SA 4.0) විසින් ලබා දුන් සැබෑ ස්ථාන ඡායාරූප භාවිතා කර ඇත. සියලුම ඡායාරූප මෙම වසමෙන් සේවය කෙරේ; මුල් ගොනු <a href="https://commons.wikimedia.org/wiki/Category:Jaya_Sri_Maha_Bodhi" target="_blank" rel="noopener noreferrer" class="underline decoration-dotted">Wikimedia Commons</a> හි ඇත.
-        <span class="block" lang="en">Photo credits: Hirushini Dematagoda (CC BY-SA 4.0), A.Savin (Free Art License), Sendaru Perera (CC BY-SA 4.0) via Wikimedia Commons.</span>
-      </div>
-    </section>
-  </main>
-
-  <footer class="bg-[#191712] py-10 text-[#d9d1c3]"><div class="container flex flex-col gap-4 text-sm md:flex-row md:items-center md:justify-between"><img src="/logo.svg" alt={`${ATTRACTION_FULL_NAME} — ${ATTRACTION_LOCAL_NAME}`} class="h-11 w-auto rounded-lg bg-[#fffaf0] px-2"/><p class="max-w-xl text-right">මෙය නිල වෙබ් අඩවියක් නොවේ; සංචාරක සැලසුම් සඳහා සකස් කළ ස්වාධීන තොරතුරු මාර්ගෝපදේශයකි. For official updates, see the <a href={GOVT_TOURISM_URL} target="_blank" rel="noopener noreferrer" class="underline decoration-dotted">{COUNTRY_NAME} Official Tourism Portal</a>.</p></div></footer>
+  </section>
+  <section id="about" class="section"><div class="container split"><div>
+    <p class="eyebrow">ජය ශ්‍රී මහා බෝධිය ගැන විස්තර</p><h2>පූජනීය වෘක්ෂයක්, ජීවමාන වන්දනා ස්ථානයක්{' '}<span lang="en">A sacred tree and a living place of worship</span></h2>
+    <p>ජය ශ්‍රී මහා බෝධිය අනුරාධපුර මහමෙව්නා උයනේ පිහිටා ඇත. එහි වැදගත්කම වෘක්ෂයේ පැරණි බවට පමණක් සීමා නොවේ; බෞද්ධ සම්ප්‍රදාය හා වන්දනාව සමඟ එය බැඳී පවතී.</p>
+    <p lang="en">Jaya Sri Maha Bodhi stands in the Mahameghawana, also called Mahamewna Gardens, in Anuradhapura. Its significance lies in Buddhist tradition and continuing worship as well as its historical associations. Treat the precinct as a religious place.</p>
+    <p><a href={tourism}>ශ්‍රී ලංකා සංචාරක ද්වාරයේ ඉතිහාස විස්තරය / Sri Lanka Tourism historical account ↗</a></p>
+  </div><aside class="card panel"><h3>ඉක්මන් සටහන{' '}<span lang="en">At a glance</span></h3><dl><dt>ස්ථානය / Place</dt><dd>Anuradhapura, Sri Lanka</dd><dt>Google Maps · 2026-10-29</dt><dd>4.9 / 5 · 15,104 විචාර / reviews</dd><dt>වේලාව හා ගාස්තු / Hours & admission</dt><dd>වර්තමාන නිල තහවුරු කිරීම අවශ්‍යයි.{' '}<span lang="en">Current operator confirmation needed.</span></dd></dl><p class="small">ලකුණු හා විචාර ගණන Google Maps තෙවන පාර්ශ්ව සටහනකි; මෙහි එකතු කළ විචාර නොවේ.{' '}<span lang="en">A dated Google Maps snapshot, not reviews collected by this guide.</span></p></aside></div></section>
+  <section id="history" class="section tinted"><div class="container narrow"><p class="eyebrow">ඉතිහාසය / History</p><h2>සංඝමිත්තා තෙරණිය හා අනුරාධපුර උරුමය{' '}<span lang="en">Sanghamitta and Anuradhapura’s heritage</span></h2>
+    <p>යුනෙස්කෝ විස්තරය අනුව පූජනීය නගරය ගොඩනැඟුණේ ක්‍රි.පූ. තුන්වන සියවසේ සංඝමිත්තා තෙරණිය ගෙන ආ බෝධි අංකුරයක් වටාය. ශ්‍රී ලංකා සංචාරක ද්වාරය දේවානම්පියතිස්ස රජු විසින් මහමෙව්නාවේ රෝපණය කළ බව විස්තර කරයි.</p>
+    <p lang="en">UNESCO places the arrival of the Bodhi cutting with Sanghamitta in the third century BCE. Sri Lanka Tourism describes King Devanampiyatissa planting it in the Mahameghawana and connects the cutting to the tree at Bodh Gaya associated with the Buddha’s enlightenment. These accounts explain the tree’s place in religious history; they are not a scientific age assessment.</p>
+    <p>යුනෙස්කෝ ලෝක උරුම ලැයිස්තුවේ සඳහන් වන්නේ අනුරාධපුර පූජනීය නගරයයි; මෙම මාර්ගෝපදේශය නිල යුනෙස්කෝ හෝ පරිශ්‍ර වෙබ් අඩවියක් නොවේ.</p>
+    <p lang="en">The World Heritage property is the <a href={unesco}>Sacred City of Anuradhapura</a>. This independent guide is not the temple, UNESCO or a government tourism authority.</p>
+  </div></section>
+  <section id="visit" class="section"><div class="container"><p class="eyebrow">පැමිණීමට පෙර / Before visiting</p><h2>වේලාව, ගාස්තු හා ගෞරවය{' '}<span lang="en">Opening times, admission and respect</span></h2><div class="cards">
+    <article class="card panel"><h3>වේලාව{' '}<span lang="en">Confirm today’s access</span></h3><p>2026 ඔක්තෝබර් 29 දින සිතියමේ එදින රාත්‍රී 9ට වැසෙන බව පෙන්වීය. එය නිල සතිපතා කාලසටහනක් නොවේ. පූජා හා විශේෂ දිනවල පිවිසුම පිළිබඳව පරිශ්‍රයෙන් විමසන්න.</p><p lang="en">Maps showed a 21:00 closing time for the day checked, 29 October 2026. We have not confirmed a current official full schedule, opening time or ceremony timetable. Ask locally before making an early or late journey.</p></article>
+    <article class="card panel"><h3>ගාස්තු{' '}<span lang="en">Check the exact ticket scope</span></h3><p>මෙම පරිශ්‍රයේ වර්තමාන නිල ගාස්තුවක් තහවුරු කර නැත. අනුරාධපුර පුරාවිද්‍යා කලාප ප්‍රවේශ පත්‍රය මෙම ස්ථානයට අදාළ බව උපකල්පනය නොකරන්න.</p><p lang="en">No current official tariff for this precinct has been verified here. The <a href="https://www.eservices.ccf.gov.lk/eticketing/landing">Central Cultural Fund ticket service</a> covers heritage sites and museums; confirm which places and visitor categories a ticket covers. Check temple admission, parking and other charges separately.</p></article>
+    <article class="card panel"><h3>වන්දනා ආචාර{' '}<span lang="en">Respect worshippers</span></h3><p>උරහිස් හා දණ වැසෙන ගෞරවාන්විත ඇඳුම් තෝරන්න. පාවහන්, හිස්වැසුම් හා ඡායාරූප පිළිබඳ ස්ථානීය නියමයන් පිළිපදින්න. පූජාවලට හෝ වන්දනාකරුවන්ගේ ගමනට බාධා නොකරන්න.</p><p lang="en">Wear modest clothing, follow instructions on footwear and headwear, and keep voices low. Ask before photographing people or ceremonies. Do not touch or climb the tree, boundary structures or sacred objects; follow staff instructions and posted restrictions.</p></article>
+  </div></div></section>
+  <section id="weather" class="section tinted"><div class="container"><p class="eyebrow">කාලගුණය / Weather</p><h2>නවතම අනාවැකිය බලන්න{' '}<span lang="en">Check the latest forecast</span></h2>
+    <p>පහත දත්ත Open-Meteo ආකෘති අනාවැකි වේ; පරිශ්‍රයේ මිනුම් හෝ විවෘත බව තහවුරු කිරීමක් නොවේ. දත්ත නොලැබුණහොත් අනුමාන අගයන් පෙන්වන්නේ නැත.</p><p lang="en">Open-Meteo supplies modelled conditions and forecasts for the Anuradhapura area, not an on-site observation or confirmation that the precinct is open. Missing data is left unavailable.</p>
+    <p id="weather-status" role="status">කාලගුණ දත්ත පූරණය වෙමින් පවතී. / Loading weather data.</p><button id="weather-retry" class="button" type="button">යාවත්කාලීන කරන්න / Refresh</button>
+    <div id="weather-values" hidden><p id="weather-current"></p><p id="weather-alert"></p><div class="weather-table-wrap"><table><caption>දින හතේ ආකෘති අනාවැකිය / Seven-day model forecast</caption><thead><tr><th scope="col">දිනය / Date</th><th scope="col">තත්ත්වය / Conditions</th><th scope="col">අවම–උපරිම / Min–max °C</th><th scope="col">වැසි ඉඩ / Rain chance</th></tr></thead><tbody id="weather-days"></tbody></table></div></div>
+    <noscript><p>කාලගුණ දත්ත සඳහා JavaScript අවශ්‍යයි. / JavaScript is needed for the forecast. Use the weather links below.</p></noscript>
+    <p class="small">මූලාශ්‍රය / Data: <a href="https://open-meteo.com/">Open-Meteo</a>, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. <a href="https://www.meteo.gov.lk/">ශ්‍රී ලංකා කාලගුණ විද්‍යා දෙපාර්තමේන්තුව / Official weather warnings ↗</a></p>
+    <div id="seasons" class="notice"><p>හිරු රශ්මිය, වැසි හා තෙත් ගල් බිම් සඳහා සූදානම් වන්න. ජලය හා වැසි ආවරණයක් රැගෙන එන්න; ගිගුරුම් ඇති විට විවෘත බිම හා විශාල ගස් යටින් ඉවත් වන්න.</p><p lang="en">Plan for heat, rain and slippery wet surfaces. Carry water and rain protection. During thunder, avoid open ground and sheltering under large trees. Check current official warnings instead of relying on a fixed seasonal timetable.</p></div>
+  </div></section>
+  <section id="location" class="section"><div class="container split"><div><p class="eyebrow">ස්ථානය / Location</p><h2>අනුරාධපුරයේ මහමෙව්නා උයන{' '}<span lang="en">Mahamewna Gardens, Anuradhapura</span></h2><p>ගමන ආරම්භ කිරීමට පෙර Jaya Sri Maha Bodhi ස්ථාන නාමය සිතියමේ තහවුරු කරන්න. සිතියම් පින් එක පිවිසුමක්, රථගාලක් හෝ රථ බැස්සවීමේ අවසරයක් තහවුරු නොකරයි.</p><p lang="en">Use the named Jaya Sri Maha Bodhi listing for orientation. A map pin does not establish a usable entrance, parking space or permitted drop-off point. Confirm your arrival and return arrangements with your transport provider; no bus timetable or fare is guaranteed here.</p><p><a class="button" href={maps} target="_blank" rel="noopener noreferrer">Google Maps හි බලන්න / Open Google Maps ↗</a></p><p class="small">සබැඳිය විවෘත කළ විට Google වෙත සම්බන්ධ වේ. / Opening the link connects to Google.</p></div><div class="card panel"><h3>පිවිසුම විමසන විට{' '}<span lang="en">Questions to ask before arriving</span></h3><ul><li>අද භාවිත කළ හැකි පිවිසුම කුමක්ද? / Which entrance is usable today?</li><li>ඔබගේ කණ්ඩායමට අදාළ ගාස්තු තිබේද? / What charges apply to your group?</li><li>අවශ්‍ය පහසුකම් හා ප්‍රවේශය තිබේද? / Are your required facilities and access available?</li><li>ආපසු ගමනේ ප්‍රවාහනය තහවුරු ද? / Is return transport arranged?</li></ul></div></div></section>
+  <section id="plan" class="section tinted"><div class="container"><p class="eyebrow">ගමන සැලසුම් කිරීම / Planning</p><h2>ඔබේ අවශ්‍යතාවට ඉඩ තබන්න{' '}<span lang="en">Allow room for your own needs</span></h2><div class="cards"><article class="card panel"><h3>වන්දනාකරුවන්{' '}<span lang="en">Pilgrims</span></h3><p>පූජා වේලාව හා පිවිසුම පරිශ්‍රයෙන් විමසන්න. මෙම පිටුව ආගමික කටයුතු සඳහා කාලසටහනක් නොසපයයි.</p><p lang="en">Ask the precinct about the ceremony and entrance you wish to attend. This page does not publish a verified ritual timetable.</p></article><article class="card panel"><h3>පවුල් හා වැඩිහිටියන්{' '}<span lang="en">Families and older visitors</span></h3><p>ගමනේ දිග ඔබේ කණ්ඩායමට අනුව තීරණය කරන්න. ජලය, විවේකය හා පාවහන් ඉවත් කළ යුතු බිම් පිළිබඳ සැලසුම් කරන්න.</p><p lang="en">Choose a pace suited to your group. Plan water, rest breaks and any footwear-removal requirements; no fixed visit duration is guaranteed.</p></article><article id="nearby" class="card panel"><h3>වෙනත් ස්ථාන{' '}<span lang="en">Other places in the sacred city</span></h3><p>රුවන්වැලි සෑය හා ලෝවාමහාපාය වැනි වෙනත් ස්ථාන වෙන වෙනම තහවුරු කර සැලසුම් කරන්න. එකම ප්‍රවේශය, ගාස්තුව හෝ පහසු මාර්ගයක් ඇතැයි නොසිතන්න.</p><p lang="en">Ruwanwelisaya and Lovamahapaya are separate places to research in the sacred city. Check each destination’s access and ticket terms independently. This is not a measured walking route or a promise of an easy combined visit.</p></article></div></div></section>
+  <section id="facilities" class="section"><div class="container narrow"><p class="eyebrow">ප්‍රවේශය / Access</p><h2>විශේෂ පහසුකම් අවශ්‍ය නම් කලින් විමසන්න{' '}<span lang="en">Confirm specific facilities ahead</span></h2><p>රෝද පුටු මාර්ග, පියගැට, වැසිකිළි, පානීය ජලය, ආසන සහ රථ බැස්සවීම පිළිබඳ වර්තමාන සමීක්ෂණයක් අප සතුව නැත. ඔබට අවශ්‍ය පහසුකම් නමින් විමසා තහවුරු කර ගන්න.</p><p lang="en">We have not audited current step-free routes, steps, toilets, drinking water, seats or drop-off access. Ask about the specific entrance and facilities you need. Older photographs do not establish today’s accessibility, and this guide does not certify a wheelchair route.</p><div id="stewardship" class="notice"><h3>උරුමය රකින්න{' '}<span lang="en">Care for the sacred place</span></h3><p>බාධක නොඉක්මවන්න, ශාක කොටස් නොගන්න, වෘක්ෂයට හෝ ගොඩනැගිලිවලට දේ බැඳීමෙන් වළකින්න. කසළ ආපසු රැගෙන යන්න; දේශීය උපදෙස් පිළිපදින්න.</p><p lang="en">Stay behind barriers, leave plant material in place and do not attach objects to the tree or structures. Take litter away and follow local instructions. Respect worshippers’ privacy.</p></div></div></section>
+  <section id="gallery" class="section tinted"><div class="container"><p class="eyebrow">ඡායාරූප / Photographs</p><h2>අතීත ඡායාරූප සටහන්{' '}<span lang="en">Historical photographic references</span></h2><p>පහත ඡායාරූප අද තත්ත්වය හෝ ප්‍රවේශ මාර්ග තහවුරු නොකරයි. / These photographs do not verify present conditions or access.</p><div class="cards gallery">{photos.map(p=><figure class="card"><img src={p.src} width={p.width} height={p.height} alt={p.alt} loading="lazy" /><figcaption><p>{p.si}</p><p lang="en">{p.en}</p><p class="small"><a href={p.source}>{p.author} · Original / මුල් ගොනුව</a> · <a href={p.licenseUrl}>{p.license}</a></p><p class="small">ප්‍රමාණය වෙනස් කර සම්පීඩනය කර ඇත; පෙන්වන රාමුව තිරයට අනුව කපා පෙන්විය හැක.{' '}<span lang="en">Resized and compressed; display framing may crop the view. Reuse follows the stated original licence. No photographer or temple endorsement is implied.</span></p></figcaption></figure>)}</div></div></section>
+  <section id="reviews" class="section"><div class="container narrow"><h2>Google Maps සටහන{' '}<span lang="en">Google Maps snapshot</span></h2><p>2026 ඔක්තෝබර් 29 දින Jaya Sri Maha Bodhi ලැයිස්තුවේ 4.9 / 5 ලකුණු හා විචාර 15,104ක් පෙන්වීය. අගයන් වෙනස් විය හැක; විචාර පෙළ මෙහි නැවත පළ නොකරයි.</p><p lang="en">The listing showed 4.9 / 5 from 15,104 reviews on 29 October 2026. Values can change. These are third-party figures, not guide-collected reviews, and review text is not republished here. <a href={maps}>Read the current Google Maps listing ↗</a>.</p></div></section>
+  <section id="faq" class="section tinted"><div class="container narrow"><p class="eyebrow">පොදු ප්‍රශ්න / FAQ</p><h2>පැමිණීමට පෙර දැනගත යුතු දේ{' '}<span lang="en">Questions before visiting</span></h2>{faqItems.map(f=><details class="faq"><summary>{f.qSi}{' '}<span lang="en">{f.qEn}</span></summary><p>{f.si}</p><p lang="en">{f.en}</p></details>)}</div></section>
+  <section id="sources" class="section"><div class="container narrow"><p class="eyebrow">මූලාශ්‍ර / Sources</p><h2>තොරතුරු හා සීමාවන්{' '}<span lang="en">Sources and their limits</span></h2><p>පරීක්ෂා කළ දිනය: 2026-10-29. / Checked 29 October 2026.</p><ul class="source-list"><li><a href={unesco}>UNESCO — Sacred City of Anuradhapura</a><p>පූජනීය නගරය හා ක්‍රි.පූ. තුන්වන සියවසේ බෝධි අංකුරය පිළිබඳ පසුබිම.{' '}<span lang="en">Sacred-city heritage and the third-century BCE cutting; not current temple hours or fees.</span></p></li><li><a href={tourism}>Sri Lanka Tourism — Buddhist places: Sri Maha Bodhi</a><p>සංඝමිත්තා තෙරණිය, මහමෙව්නාව හා දේවානම්පියතිස්ස රජු පිළිබඳ ඉතිහාස විස්තරය.{' '}<span lang="en">Historical account of Sanghamitta, Mahameghawana and Devanampiyatissa; no verified current admission schedule.</span></p></li><li><a href="https://srilanka.travel/travel-tips">Sri Lanka Tourism — Travel tips</a><p>ආගමික ස්ථාන සඳහා ගෞරවාන්විත ඇඳුම් හා සාමාන්‍ය සූදානම.{' '}<span lang="en">General modest dress and travel preparation; local instructions take precedence.</span></p></li><li><a href="https://www.eservices.ccf.gov.lk/eticketing/landing">Central Cultural Fund — Ticket service</a><p>පුරාවිද්‍යා ස්ථාන හා කෞතුකාගාර සඳහා ප්‍රවේශ පත්‍ර සේවාව.{' '}<span lang="en">Heritage-site and museum ticketing; not evidence of this temple’s exact admission rules.</span></p></li><li><a href={maps}>Google Maps — Jaya Sri Maha Bodhi</a><p>2026-10-29 ලකුණු, විචාර ගණන හා එදින වැසෙන වේලාව පිළිබඳ තෙවන පාර්ශ්ව සටහන.{' '}<span lang="en">Dated rating, review-count and closing-time snapshot, not an operator timetable.</span></p></li><li><a href="https://open-meteo.com/en/docs">Open-Meteo — Forecast documentation</a><p>කාලගුණ ආකෘති දත්ත; ස්ථානීය අනතුරු ඇඟවීම් සඳහා <a href="https://www.meteo.gov.lk/">කාලගුණ විද්‍යා දෙපාර්තමේන්තුව</a> බලන්න.{' '}<span lang="en">Model weather data; consult official Sri Lanka warnings for alerts.</span></p></li></ul></div></section>
+  <section id="privacy" class="section tinted"><div class="container narrow"><h2>පෞද්ගලිකත්වය හා ස්වාධීනත්වය{' '}<span lang="en">Privacy and independence</span></h2><p>මෙය ස්වාධීන, ලාභ නොලබන සංචාරක හා අධ්‍යාපනික තොරතුරු මාර්ගෝපදේශයකි. පරිශ්‍රය, රජය හෝ යුනෙස්කෝ නිල වෙබ් අඩවියක් නොවේ; ප්‍රවේශ පත්‍ර විකුණන්නේ නැත.</p><p lang="en">This is an independent nonprofit tourism and educational information guide. It is not the temple, a government authority or UNESCO, and does not sell tickets. “Nonprofit” describes this guide’s purpose, not a claim of registered charitable status.</p><p>Google Analytics පිටු භාවිතය මැනීමට ස්වයංක්‍රීයව පූරණය වන අතර කුකී හා සම්බන්ධතා දත්ත භාවිත කළ හැක. Cloudflare සත්කාරක සේවාව ආරක්ෂාව හා කාර්යසාධනය සඳහා සම්බන්ධතා දත්ත සැකසිය හැක; එය Google Analytics වෙතින් ස්වාධීන විය හැක.</p><p lang="en">Google Analytics loads automatically to measure page use and may use cookies and connection data. Cloudflare hosts this site and may process connection, security and performance data independently of Google Analytics. This page has no analytics consent control.</p><p>කාලගුණය පූරණය වන විට ඔබගේ බ්‍රවුසරය Open-Meteo වෙත සම්බන්ධ වේ; උපාංග ස්ථානය ඉල්ලන්නේ නැත. Google Maps සබැඳිය විවෘත කළ විට Google වෙත සම්බන්ධ වේ. ඡායාරූප මෙම වෙබ් අඩවියෙන් පූරණය වේ.</p><p lang="en">The weather panel connects your browser to Open-Meteo using a fixed area location; it does not request your device location. Google Maps opens only when you follow its link. Photographs are served by this site. External sites apply their own privacy terms: <a href="https://policies.google.com/privacy">Google</a>, <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare</a>, <a href="https://open-meteo.com/en/terms">Open-Meteo</a>.</p></div></section>
+</main>
+<footer><div class="container"><p>ස්වාධීන, ලාභ නොලබන සංචාරක හා අධ්‍යාපනික තොරතුරු මාර්ගෝපදේශයකි. නිල පරිශ්‍ර වෙබ් අඩවියක් නොවේ.</p><p lang="en">Independent nonprofit tourism and educational information guide. Not the official temple website.</p><a href="#sources">මූලාශ්‍ර / Sources</a> · <a href="#privacy">පෞද්ගලිකත්වය / Privacy</a> · <a href="#top">ඉහළට / Back to top</a></div></footer>
+<script>
+  import { buildWeatherApiUrl, normaliseWeatherPayload, weatherCodeToText, formatNumber } from '../lib/weather-shared';
+  const menu = document.querySelector<HTMLDetailsElement>('#section-menu');
+  menu?.addEventListener('click', event => { if ((event.target as Element).closest('a')) menu.open = false; });
+  menu?.addEventListener('keydown', event => { if (event.key === 'Escape') { menu.open = false; menu.querySelector('summary')?.focus(); } });
+  const status = document.querySelector<HTMLElement>('#weather-status')!;
+  const panel = document.querySelector<HTMLElement>('#weather-values')!;
+  const current = document.querySelector<HTMLElement>('#weather-current')!;
+  const alert = document.querySelector<HTMLElement>('#weather-alert')!;
+  const rows = document.querySelector<HTMLElement>('#weather-days')!;
+  const retry = document.querySelector<HTMLButtonElement>('#weather-retry')!;
+  let lastSuccess = 0;
+  let busy = false;
+  const unavailable = () => { panel.hidden = true; rows.replaceChildren(); current.textContent = ''; alert.textContent = ''; status.textContent = 'දත්ත නොමැත. නැවත උත්සාහ කරන්න හෝ නිල කාලගුණ සබැඳිය බලන්න. / Weather unavailable. Retry or check the official weather link.'; };
+  async function refresh() {
+    if (busy) return;
+    busy = true; retry.disabled = true;
+    const controller = new AbortController(); const timeout = window.setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await fetch(buildWeatherApiUrl(8.3446448,80.3972292), { signal:controller.signal, cache:'no-store' });
+      if (!response.ok) throw new Error('weather response');
+      const snapshot = normaliseWeatherPayload(await response.json(),new Date().toISOString());
+      if (!snapshot) throw new Error('weather payload');
+      const modelTime = Date.parse(snapshot.now.time.match(/(?:Z|[+-]\d\d:\d\d)$/) ? snapshot.now.time : snapshot.now.time+'+05:30');
+      const parts = new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Colombo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+      const datePart=(type:string)=>parts.find(part=>part.type===type)?.value;
+      const today = `${datePart('year')}-${datePart('month')}-${datePart('day')}`;
+      if (!Number.isFinite(modelTime) || Math.abs(Date.now()-modelTime)>3*3600000 || !snapshot.days.length || snapshot.days[0].date!==today) throw new Error('stale weather');
+      const text = weatherCodeToText(snapshot.now.weatherCode);
+      current.textContent = `${text.si} / ${text.en} · ${formatNumber(snapshot.now.temperature,1)} °C · දැනෙන උෂ්ණත්වය / Feels like ${formatNumber(snapshot.now.apparentTemperature,1)} °C`;
+      status.textContent = `ආකෘති වේලාව / Model time: ${snapshot.now.time} (Asia/Colombo). ලබාගත් වේලාව / Retrieved: ${new Date().toLocaleString('en-GB',{timeZone:'Asia/Colombo'})} (Asia/Colombo).`;
+      const code = snapshot.now.weatherCode; const dailyCode = snapshot.days[0].weatherCode;
+      const thunder = [code,dailyCode].some(c=>c!==null && [95,96,99].includes(c));
+      const heavy = [code,dailyCode].some(c=>c!==null && [65,67,82].includes(c));
+      alert.textContent = thunder ? 'අකුණු අවදානම: විවෘත බිම් හා විශාල ගස් යටින් ඉවත් වන්න. / Thunderstorm risk: avoid exposed ground and sheltering under large trees.' : heavy ? 'තද වැසි අවදානම: තෙත් බිම්වල ප්‍රවේශම් වන්න. / Heavy-rain risk: take care on wet surfaces.' : 'අනාවැකි වෙනස් විය හැක; නිල අනතුරු ඇඟවීම් බලන්න. / Forecasts can change; check official warnings.';
+      rows.replaceChildren(...snapshot.days.map(day=>{const tr=document.createElement('tr');const label=weatherCodeToText(day.weatherCode);for(const value of [day.date,label.si+' / '+label.en,formatNumber(day.tempMin,1)+'–'+formatNumber(day.tempMax,1),day.precipitationProbability===null?'—':formatNumber(day.precipitationProbability)+'%']){const td=document.createElement('td');td.textContent=value;tr.append(td);}return tr;}));
+      lastSuccess=Date.now();panel.hidden=false;
+    } catch { unavailable(); } finally { clearTimeout(timeout);busy=false;retry.disabled=false; }
+  }
+  retry.addEventListener('click',refresh); void refresh();
+  window.setInterval(()=>{if(!document.hidden)void refresh();},15*60*1000);
+  window.setInterval(()=>{if(lastSuccess && Date.now()-lastSuccess>30*60*1000)unavailable();},60*1000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(Date.now()-lastSuccess>30*60*1000)unavailable();void refresh();}});
+  if ('serviceWorker' in navigator) window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});
+</script>
 </body>
 </html>

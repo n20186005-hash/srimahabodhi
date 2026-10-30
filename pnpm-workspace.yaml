@@ -1,0 +1,4 @@
+# Reviewed platform-binary installer scripts; all other builds remain unapproved.
+allowBuilds:
+  'esbuild@0.28.1 || 0.28.2': true
+  'workerd@1.20260911.1': true

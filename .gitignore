@@ -9,7 +9,7 @@ dist/
 .env.*
 !.env.example
 
-# 其他包管理器的锁文件（本项目未提交锁文件）
+# Other package-manager lockfiles; pnpm-lock.yaml is committed.
 package-lock.json
 yarn.lock
 

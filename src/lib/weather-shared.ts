@@ -37,38 +37,12 @@ export interface WeatherSnapshot {
   days: WeatherDay[];
 }
 
-export interface ClimateNormal {
-  tempMax: number;
-  tempMin: number;
-  rainfall: number;
-}
-
-/**
- * Long-term monthly climate normals for Anuradhapura (dry zone): rounded reference values
- * used only as an offline fallback when live data cannot be retrieved.
- * Basis: published climatological normals for the North Central Province.
- */
-export const CLIMATE_NORMALS: ClimateNormal[] = [
-  { tempMax: 30, tempMin: 21, rainfall: 90 },
-  { tempMax: 32, tempMin: 22, rainfall: 60 },
-  { tempMax: 34, tempMin: 23, rainfall: 60 },
-  { tempMax: 34, tempMin: 24, rainfall: 120 },
-  { tempMax: 33, tempMin: 25, rainfall: 90 },
-  { tempMax: 32, tempMin: 25, rainfall: 25 },
-  { tempMax: 32, tempMin: 24, rainfall: 20 },
-  { tempMax: 32, tempMin: 24, rainfall: 30 },
-  { tempMax: 32, tempMin: 24, rainfall: 60 },
-  { tempMax: 31, tempMin: 23, rainfall: 180 },
-  { tempMax: 30, tempMin: 22, rainfall: 220 },
-  { tempMax: 29, tempMin: 21, rainfall: 200 }
-];
-
 export function buildWeatherApiUrl(latitude: number, longitude: number): string {
   const params = new URLSearchParams({
     latitude: String(latitude),
     longitude: String(longitude),
     current:
-      'temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index',
+      'temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m,wind_gusts_10m',
     daily:
       'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,uv_index_max,wind_speed_10m_max,wind_gusts_10m_max',
     forecast_days: '7',
@@ -175,8 +149,8 @@ export interface WeatherSiteProfile {
 /** Anuradhapura: inland sacred city in the dry zone, with the Mihintale hill nearby. */
 export const ANURADHAPURA_PROFILE: WeatherSiteProfile = {
   barefootGround: true,
-  mountain: true,
-  waterside: true,
+  mountain: false,
+  waterside: false,
   photography: true,
   coastal: false
 };
@@ -515,13 +489,15 @@ interface RawWeatherPayload {
 export function normaliseWeatherPayload(payload: unknown, fetchedAt: string): WeatherSnapshot | null {
   const raw = (payload ?? {}) as RawWeatherPayload;
   const current = raw.current ?? {};
+  if (typeof current.time !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(current.time)) return null;
   const daily = raw.daily ?? {};
-  const dates = (daily.time ?? []) as string[];
+  if (!Array.isArray(daily.time) || daily.time.some(v => typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v))) return null;
+  const dates = daily.time as string[];
   const num = (value: unknown): number | null =>
     typeof value === 'number' && Number.isFinite(value) ? value : null;
 
   const now: WeatherNow = {
-    time: typeof current.time === 'string' ? current.time : fetchedAt,
+    time: current.time,
     temperature: num(current.temperature_2m),
     apparentTemperature: num(current.apparent_temperature),
     humidity: num(current.relative_humidity_2m),
